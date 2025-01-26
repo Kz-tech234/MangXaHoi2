@@ -1,0 +1,123 @@
+{% extends 'admin/base_site.html' %}
+{% block content %}
+    <h1>THỐNG KÊ HOẠT ĐỘNG MẠNG XÃ HỘI CỰU SINH VIÊN</h1>
+
+    <label for="type">Chọn loại:</label>
+    <select id="type">
+        <option value="year">Theo năm</option>
+        <option value="quarter">Theo quý</option>
+        <option value="month">Theo tháng</option>
+    </select>
+
+    <label for="year" id="year-label" style="display:none;">Chọn năm:</label>
+    <select id="year" style="display:none;"></select>
+
+    <div>
+        <canvas id="statsChart"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        const currentYear = new Date().getFullYear();
+        const yearSelect = document.getElementById('year');
+        const typeSelect = document.getElementById('type');
+        const yearLabel = document.getElementById('year-label');
+
+        // Tải danh sách năm từ API
+        function loadAvailableYears() {
+            $.ajax({
+                url: '{% url "get_available_years" %}',  // API lấy danh sách năm
+                success: function (response) {
+                    yearSelect.innerHTML = '';  // Xóa danh sách cũ
+                    response.years.forEach(year => {
+                        const option = document.createElement('option');
+                        option.value = year;
+                        option.textContent = year;
+                        yearSelect.appendChild(option);
+                    });
+                }
+            });
+        }
+        loadAvailableYears();
+
+        // Ẩn/Hiện mục chọn năm dựa vào loại được chọn
+        typeSelect.addEventListener('change', function () {
+            if (typeSelect.value === 'year') {
+                yearLabel.style.display = 'none';
+                yearSelect.style.display = 'none';
+            } else {
+                yearLabel.style.display = 'inline';
+                yearSelect.style.display = 'inline';
+            }
+            fetchDataAndUpdateChart();
+        });
+
+        function fetchDataAndUpdateChart() {
+            const type = typeSelect.value;
+            const year = yearSelect.value || currentYear;
+
+            $.ajax({
+                url: '{% url "user_stats_api" %}',  // API thống kê người dùng
+                data: {
+                    type: type,
+                    year: year,
+                },
+                success: function (data) {
+                    myChart.data.labels = data.labels;
+                    myChart.data.datasets[0].data = data.values;
+                    myChart.update();
+                }
+            });
+
+            $.ajax({
+                url: '{% url "post_stats_api" %}',  // API thống kê bài viết
+                data: {
+                    type: type,
+                    year: year,
+                },
+                success: function (data) {
+                    myChart.data.labels = data.labels;
+                    myChart.data.datasets[1].data = data.values;
+                    myChart.update();
+                }
+            });
+        }
+
+        const ctx = document.getElementById('statsChart');
+        const myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Người dùng',
+                        data: [],
+                        backgroundColor: 'blue',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Bài viết',
+                        data: [],
+                        backgroundColor: 'green',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Lấy dữ liệu ban đầu khi tải trang
+        fetchDataAndUpdateChart();
+        document.getElementById('type').addEventListener('change', fetchDataAndUpdateChart);
+        document.getElementById('year').addEventListener('change', fetchDataAndUpdateChart);
+    </script>
+{% endblock %}
