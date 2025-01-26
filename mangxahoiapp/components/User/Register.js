@@ -4,6 +4,7 @@ import { Button, HelperText, RadioButton, TextInput } from "react-native-paper";
 import MyStyles from "../../styles/MyStyles";
 import * as ImagePicker from 'expo-image-picker';
 import APIs, { endpoints } from "../../configs/APIs";
+import * as FileSystem from 'expo-file-system';
 import { useNavigation } from "@react-navigation/native";
 
 const Register = () => {
@@ -23,30 +24,36 @@ const Register = () => {
 
     const nav = useNavigation();
 
+    const [images, setImages] = useState([]);
+
     const change = (value, field) => {
         setUser({ ...user, [field]: value });
     };
 
-    const pickImage = async () => {
+    const handleImagePick = async () => {
         try {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== 'granted') {
-                Alert.alert("Quyền truy cập bị từ chối", "Vui lòng cấp quyền truy cập thư viện ảnh.");
-                return;
-            }
-
-            const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 1,
-            });
-
-            if (!result.canceled) {
-                change(result.assets[0], 'image');
-            }
-        } catch (err) {
-            Alert.alert("Lỗi khi chọn ảnh", err.message);
+          const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (permissionResult.status !== 'granted') {
+            alert('Quyền truy cập ảnh bị từ chối');
+            return;
+          }
+    
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [4, 3],
+            quality: 1,
+          });
+    
+          if (!result.canceled) {
+            const imageUri = result.assets[0].uri;
+            const base64 = await FileSystem.readAsStringAsync(imageUri, { encoding: FileSystem.EncodingType.Base64 });
+            setImages([{ ...result.assets[0], base64 }]);
+          } else {
+            console.log('Chọn ảnh bị hủy bỏ');
+          }
+        } catch (error) {
+          console.error('Error picking image:', error);
         }
     };
 
@@ -59,19 +66,20 @@ const Register = () => {
 
         setErr(false);
         let form = new FormData();
+            for (let key in user)
+                if (key !== 'confirm') {
+                    form.append(key, user[key]);
+                }
 
-        for (let key in user) {
-            if (key === 'image' && user.image) {
-                form.append('image', {
-                    uri: user.image.uri.replace('file://', ''),
-                    name: user.image.fileName || 'image.jpg',
-                    type: user.image.type || 'image/jpeg',
-                });
-            } else if (key !== 'confirm') {
-                form.append(key, user[key]);
-            }
-        }
+            const image = images[0];
+            const imageName = image.fileName || `image.jpg`; 
+            const imageType = "image/jpeg";
 
+            form.append('image', {
+            uri: image.uri,
+            type: imageType,
+            name: imageName,
+            });
         setLoading(true);
         try {
             let res = await APIs.post(endpoints['register'], form, {
@@ -111,16 +119,12 @@ const Register = () => {
                     />
                     <Text>CUUSINHVIEN (Cựu Sinh Viên)</Text>
                 </View>
-                {user.image ? (
-                    <View>
-                        <Image source={{ uri: user.image.uri }} style={{ width: 100, height: 100 }} />
-                        <Text>{user.image.fileName || 'Ảnh đã chọn'}</Text>
-                    </View>
-                ) : (
-                    <TouchableOpacity onPress={pickImage}>
-                        <Text style={MyStyles.margin}>Chọn ảnh đại diện...</Text>
-                    </TouchableOpacity>
-                )}
+                <TouchableOpacity onPress={handleImagePick}>
+                    <Text style={MyStyles.margin}>Chọn ảnh đại diện...</Text>
+                </TouchableOpacity>
+                {images.map((image, index) => (
+                          <Image key={index} source={{ uri: image.uri }} style={{ width: 100, height: 100 }} />
+                        ))}
                 <Button loading={loading} mode="contained" onPress={register}>ĐĂNG KÝ</Button>
             </KeyboardAvoidingView>
         </View>
