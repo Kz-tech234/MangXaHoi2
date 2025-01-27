@@ -11,7 +11,7 @@ import Home from './components/Home/Home';
 import Login from './components/User/Login';
 import Register from './components/User/Register';
 // import UserProfile from "./components/User/Profile";
-import TimNguoiKhac  from './components/Home/TimNguoiKhac';
+// import TimNguoiKhac  from './components/Home/TimNguoiKhac';
 import ChiTietBaiDang from "./components/Home/ChiTietBaiDang";
 import TrangCaNhan from "./components/Home/TrangCaNhan";
 // import TimTro from "./components/Home/TimTro";
