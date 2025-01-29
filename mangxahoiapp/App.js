@@ -1,37 +1,32 @@
-// Import các thư viện cần thiết
-
 import React, { useContext, useReducer } from 'react';
 import { NavigationContainer, StackActions } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Icon } from "react-native-paper";
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Import các component màn hình
 import Home from './components/Home/Home';
 import Login from './components/User/Login';
 import Register from './components/User/Register';
-// import UserProfile from "./components/User/Profile";
-// import TimNguoiKhac  from './components/Home/TimNguoiKhac';
 import ChiTietBaiDang from "./components/Home/ChiTietBaiDang";
 import TrangCaNhan from "./components/Home/TrangCaNhan";
-// import TimTro from "./components/Home/TimTro";
+import Profile from './components/User/Profile';
+import CreatePost from "./components/Home/CreatePost";
 
-// import QuanLyTro from "./components/Home/QuanLyTro"; 
-// import ThemTro from "./components/Home/ThemTro"; 
-// import ChiTietTro from "./components/Home/ChiTietTro"; 
 
 // Import context và reducer
 import { MyDispatchContext, MyUserContext } from './configs/MyUserContext';
 import MyUserReducers from './configs/MyUserReducers';
-import Profile from './components/User/Profile';
 
 // Firebase
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth'; // Authentication
-import { getDatabase } from 'firebase/database'; // Realtime Database
+import { initializeApp, getApps } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getDatabase } from 'firebase/database';
 import { getAnalytics } from 'firebase/analytics';
+import Notifications from './components/Home/Notifications';
+import Surveys from './components/Home/Surveys';
 
-// Cấu hình Firebase
+// Kiểm tra và chỉ khởi tạo Firebase nếu chưa có instance nào
 const firebaseConfig = {
   apiKey: "AIzaSyBA71OL95JtgK6ryUbXqQvGDsTSf9ZMCQg",
   authDomain: "mangxahoi-44414.firebaseapp.com",
@@ -43,13 +38,11 @@ const firebaseConfig = {
   measurementId: "G-ZK4R19M4JK"
 };
 
-// Khởi tạo Firebase
-const app = initializeApp(firebaseConfig);
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Khởi tạo các dịch vụ Firebase mà bạn cần
-const auth = getAuth(app); // Authentication
-const database = getDatabase(app); // Realtime Database
-const analytics = getAnalytics(app); // Analytics (nếu bạn cần)
+const auth = getAuth(app);
+const database = getDatabase(app);
+const analytics = getAnalytics(app);
 
 export { app, auth, database, analytics };
 
@@ -59,123 +52,57 @@ const Stack = createNativeStackNavigator();
 const HomeStackNavigator = () => {
   return (
     <Stack.Navigator>
-      <Stack.Screen
-        name="Home"
-        component={Home}
-        options={{ title: "Trang chính" }}
-      />
-      <Stack.Screen
-        name="ChiTietBaiDang"
-        component={ChiTietBaiDang}
-        options={{ title: "Chi tiết bài đăng" }}
-      />
-      {/* <Stack.Screen
-        name="TimNguoiKhac"
-        component={TimNguoiKhac}
-        options={{ title: "Tìm người khác" }}
-      /> */}
-      <Stack.Screen
-        name="TrangCaNhan"
-        component={TrangCaNhan}
-        options={{ title: "Trang cá nhân" }}
-      />
-      {/* <Stack.Screen
-        name="QuanLyTro"
-        component={QuanLyTro}
-        options={{ title: "Quản lý trọ" }}
-      /> */}
-      {/* <Stack.Screen
-        name="ThemTro"
-        component={ThemTro}
-        options={{ title: "Thêm trọ" }}
-      /> */}
-      {/* <Stack.Screen
-        name="ChiTietTro"
-        component={ChiTietTro}
-        options={{ title: "Chi tiết trọ" }}
-      /> */}
-
+      <Stack.Screen name="Home" component={Home} options={{ title: "Trang chính" }} />
+      <Stack.Screen name="ChiTietBaiDang" component={ChiTietBaiDang} options={{ title: "Chi tiết bài đăng" }} />
+      <Stack.Screen name="TrangCaNhan" component={TrangCaNhan} options={{ title: "Trang cá nhân" }} />
+      <Stack.Screen name="CreatePost" component={CreatePost} options={{ title: "Tạo bài đăng" }} /> 
     </Stack.Navigator>
   );
 };
 
-// const ChatStackNavigator = () => {
-//   return (
-//     <Stack.Navigator>
-//       <Stack.Screen
-//         name="Chat"
-//         component={Chat}
-//         options={{title: "Tin nhắn"}}
-//       />
-//       <Stack.Screen
-//         name="ChatRoom"
-//         component={ChatRoom}
-//         options={{title: "Tin nhắn"}}
-//       />
-//       <Stack.Screen
-//         name="TrangCaNhan"
-//         component={TrangCaNhan}
-//         options={{ title: "Trang cá nhân" }}
-//       />
-//     </Stack.Navigator>
-//   )
-// }
-
 const ProfileStackNavigator = () => {
   return (
     <Stack.Navigator>
-      <Stack.Screen
-        name="Profile"
-        component={Profile}
-        options={{title: "Tài khoản"}}
-      />
-      
-      <Stack.Screen
-        name="ChiTietBaiDang"
-        component={ChiTietBaiDang}
-        options={{ title: "Chi tiết bài đăng" }}
-      />
-      <Stack.Screen
-        name="TrangCaNhan"
-        component={TrangCaNhan}
-        options={{ title: "Trang cá nhân" }}
-      />
-      {/* <Stack.Screen
-        name="QuanLyTro"
-        component={QuanLyTro}
-        options={{ title: "Quản lý trọ" }}
-      /> */}
-      {/* <Stack.Screen
-        name="ThemTro"
-        component={ThemTro}
-        options={{ title: "Thêm trọ" }}
-      />
-      <Stack.Screen
-        name="ChiTietTro"
-        component={ChiTietTro}
-        options={{ title: "Chi tiết trọ" }}
-      /> */}
+      <Stack.Screen name="Profile" component={Profile} options={{ title: "Tài khoản" }} />
+      <Stack.Screen name="ChiTietBaiDang" component={ChiTietBaiDang} options={{ title: "Chi tiết bài đăng" }} />
+      <Stack.Screen name="TrangCaNhan" component={TrangCaNhan} options={{ title: "Trang cá nhân" }} />
+    </Stack.Navigator>
+  );
+};
 
+
+// Stack Navigator cho Thông báo
+const NotificationStackNavigator = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="Notification" component={Notifications} options={{ title: "Thông báo" }} />
+    </Stack.Navigator>
+  );
+};
+
+// Stack Navigator cho Khảo sát
+const SurveysStackNavigator = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="Surveys" component={Surveys} options={{ title: "Khảo sát" }} />
     </Stack.Navigator>
   );
 };
 
 const resetStackOnTabPress = (navigation, e) => {
-  const state = navigation.dangerouslyGetState();
+  const state = navigation.getState();
   if (state) {
-    const nonTargetTabs = state.routes.filter((r) => r.key !== e.target);
-    nonTargetTabs.forEach((tab) => {
-      if (tab?.state?.key) {
-        navigation.dispatch({ ...StackActions.popToTop(), target: tab?.state?.key });
+    state.routes.forEach((route) => {
+      if (route.key !== e.target && route.state?.key) {
+        navigation.dispatch({ ...StackActions.popToTop(), target: route.state.key });
       }
     });
   }
 };
 
-// Tạo TabNavigator
 const TabNavigator = ({ navigation }) => {
   const user = useContext(MyUserContext);
-  
+
   return (
     <Tab.Navigator>
       {user === null ? (
@@ -185,7 +112,9 @@ const TabNavigator = ({ navigation }) => {
             component={Login}
             options={{
               title: "Đăng nhập",
-              tabBarIcon: () => <Icon source="account-check" size={20} />
+              tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons name="account-check" color={color} size={size} />
+              ),
             }}
           />
           <Tab.Screen
@@ -193,7 +122,9 @@ const TabNavigator = ({ navigation }) => {
             component={Register}
             options={{
               title: "Đăng ký",
-              tabBarIcon: () => <Icon source="account-plus" size={20} />
+              tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons name="account-plus" color={color} size={size} />
+              ),
             }}
           />
         </>
@@ -205,31 +136,51 @@ const TabNavigator = ({ navigation }) => {
             options={{
               title: "Trang chủ",
               headerShown: false,
-              tabBarIcon: () => <Icon source="home-account" size={20} />,
+              tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons name="home-account" color={color} size={size} />
+              ),
               listeners: {
                 tabPress: (e) => resetStackOnTabPress(navigation, e),
               },
             }}
           />
-          {/* <Tab.Screen
-            name="Chat"
-            component={ChatStackNavigator}
+          <Tab.Screen
+            name="Notification"
+            component={NotificationStackNavigator}
             options={{
-              title: "Tin nhắn",
+              title: "Thông báo",
               headerShown: false,
-              tabBarIcon: () => <Icon source="account-check" size={20} />,
+              tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons name="bell" color={color} size={size} />
+              ),
               listeners: {
                 tabPress: (e) => resetStackOnTabPress(navigation, e),
               },
             }}
-          /> */}
+          />
+          <Tab.Screen
+            name="Surveys"
+            component={SurveysStackNavigator}
+            options={{
+              title: "Khảo sát",
+              headerShown: false,
+              tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons name="clipboard-list" color={color} size={size} />
+              ),
+              listeners: {
+                tabPress: (e) => resetStackOnTabPress(navigation, e),
+              },
+            }}
+          />
           <Tab.Screen
             name="Profile"
             component={ProfileStackNavigator}
             options={{
               title: "Tài khoản",
               headerShown: false,
-              tabBarIcon: () => <Icon source="account-check" size={20} />,
+              tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons name="account" color={color} size={size} />
+              ),
               listeners: {
                 tabPress: (e) => resetStackOnTabPress(navigation, e),
               },
@@ -241,17 +192,16 @@ const TabNavigator = ({ navigation }) => {
   );
 };
 
-// App chính
 export default function App() {
-const [user, dispatch] = useReducer(MyUserReducers, null);
+  const [user, dispatch] = useReducer(MyUserReducers, null);
 
-return (
-  <NavigationContainer>
-    <MyUserContext.Provider value={user}>
-      <MyDispatchContext.Provider value={dispatch}>
-        <TabNavigator />
-      </MyDispatchContext.Provider>
-    </MyUserContext.Provider>
-  </NavigationContainer>
-);
+  return (
+    <NavigationContainer>
+      <MyUserContext.Provider value={user}>
+        <MyDispatchContext.Provider value={dispatch}>
+          <TabNavigator />
+        </MyDispatchContext.Provider>
+      </MyUserContext.Provider>
+    </NavigationContainer>
+  );
 }

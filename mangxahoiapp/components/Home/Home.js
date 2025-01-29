@@ -85,26 +85,14 @@ const Home = () => {
           style={styles.searchIcon}
           onPress={() => navigation.navigate("TimNguoiKhac")}
         />
+        <Ionicons
+          name="add-circle"
+          size={30}
+          color="#0288d1"
+          style={styles.addIcon}
+          onPress={() => navigation.navigate("CreatePost")}
+        />  
       </View>
-
-      <View style={styles.filterContainer}>
-        <Button
-          title="Tìm phòng"
-          onPress={() => setFilterType("Tìm phòng")}
-          color={filterType === "Tìm phòng" ? "#0288d1" : "#ccc"}
-        />
-        <Button
-          title="Cho thuê"
-          onPress={() => setFilterType("Cho thuê")}
-          color={filterType === "Cho thuê" ? "#0288d1" : "#ccc"}
-        />
-        <Button
-          title="Tất cả"
-          onPress={() => setFilterType("")}
-          color={filterType === "" ? "#0288d1" : "#ccc"}
-        />
-      </View>
-
       {filteredBaidangs.length === 0 ? (
         <Text>Không có bài đăng với loại này.</Text>
       ) : (
