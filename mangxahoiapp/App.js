@@ -53,7 +53,6 @@ const analytics = getAnalytics(app); // Analytics (nếu bạn cần)
 
 export { app, auth, database, analytics };
 
-
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -70,20 +69,57 @@ const HomeStackNavigator = () => {
         component={ChiTietBaiDang}
         options={{ title: "Chi tiết bài đăng" }}
       />
-      <Stack.Screen
+      {/* <Stack.Screen
         name="TimNguoiKhac"
         component={TimNguoiKhac}
         options={{ title: "Tìm người khác" }}
-      />
+      /> */}
       <Stack.Screen
         name="TrangCaNhan"
         component={TrangCaNhan}
         options={{ title: "Trang cá nhân" }}
       />
+      {/* <Stack.Screen
+        name="QuanLyTro"
+        component={QuanLyTro}
+        options={{ title: "Quản lý trọ" }}
+      /> */}
+      {/* <Stack.Screen
+        name="ThemTro"
+        component={ThemTro}
+        options={{ title: "Thêm trọ" }}
+      /> */}
+      {/* <Stack.Screen
+        name="ChiTietTro"
+        component={ChiTietTro}
+        options={{ title: "Chi tiết trọ" }}
+      /> */}
 
     </Stack.Navigator>
   );
 };
+
+// const ChatStackNavigator = () => {
+//   return (
+//     <Stack.Navigator>
+//       <Stack.Screen
+//         name="Chat"
+//         component={Chat}
+//         options={{title: "Tin nhắn"}}
+//       />
+//       <Stack.Screen
+//         name="ChatRoom"
+//         component={ChatRoom}
+//         options={{title: "Tin nhắn"}}
+//       />
+//       <Stack.Screen
+//         name="TrangCaNhan"
+//         component={TrangCaNhan}
+//         options={{ title: "Trang cá nhân" }}
+//       />
+//     </Stack.Navigator>
+//   )
+// }
 
 const ProfileStackNavigator = () => {
   return (
@@ -91,8 +127,9 @@ const ProfileStackNavigator = () => {
       <Stack.Screen
         name="Profile"
         component={Profile}
-        options={{ title: "Tài khoản" }}
+        options={{title: "Tài khoản"}}
       />
+      
       <Stack.Screen
         name="ChiTietBaiDang"
         component={ChiTietBaiDang}
@@ -103,6 +140,21 @@ const ProfileStackNavigator = () => {
         component={TrangCaNhan}
         options={{ title: "Trang cá nhân" }}
       />
+      {/* <Stack.Screen
+        name="QuanLyTro"
+        component={QuanLyTro}
+        options={{ title: "Quản lý trọ" }}
+      /> */}
+      {/* <Stack.Screen
+        name="ThemTro"
+        component={ThemTro}
+        options={{ title: "Thêm trọ" }}
+      />
+      <Stack.Screen
+        name="ChiTietTro"
+        component={ChiTietTro}
+        options={{ title: "Chi tiết trọ" }}
+      /> */}
 
     </Stack.Navigator>
   );
@@ -123,7 +175,7 @@ const resetStackOnTabPress = (navigation, e) => {
 // Tạo TabNavigator
 const TabNavigator = ({ navigation }) => {
   const user = useContext(MyUserContext);
-
+  
   return (
     <Tab.Navigator>
       {user === null ? (
@@ -159,6 +211,18 @@ const TabNavigator = ({ navigation }) => {
               },
             }}
           />
+          {/* <Tab.Screen
+            name="Chat"
+            component={ChatStackNavigator}
+            options={{
+              title: "Tin nhắn",
+              headerShown: false,
+              tabBarIcon: () => <Icon source="account-check" size={20} />,
+              listeners: {
+                tabPress: (e) => resetStackOnTabPress(navigation, e),
+              },
+            }}
+          /> */}
           <Tab.Screen
             name="Profile"
             component={ProfileStackNavigator}
@@ -179,15 +243,15 @@ const TabNavigator = ({ navigation }) => {
 
 // App chính
 export default function App() {
-  const [user, dispatch] = useReducer(MyUserReducers, null);
+const [user, dispatch] = useReducer(MyUserReducers, null);
 
-  return (
-    <NavigationContainer>
-      <MyUserContext.Provider value={user}>
-        <MyDispatchContext.Provider value={dispatch}>
-          <TabNavigator />
-        </MyDispatchContext.Provider>
-      </MyUserContext.Provider>
-    </NavigationContainer>
-  );
+return (
+  <NavigationContainer>
+    <MyUserContext.Provider value={user}>
+      <MyDispatchContext.Provider value={dispatch}>
+        <TabNavigator />
+      </MyDispatchContext.Provider>
+    </MyUserContext.Provider>
+  </NavigationContainer>
+);
 }

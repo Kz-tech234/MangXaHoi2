@@ -32,34 +32,35 @@ const Login = () => {
         }
     }
 
-    const login = async () => {
+    const login = async (navigation) => { // Nhận đối tượng navigation làm tham số
         setLoading(true);
         try {
             let res = await APIs.post(endpoints['login'], {
                 ...user,
-                client_id: 'sIOM66N4VUPsvJzKqcfWrxKLn7Rbzg5imLa3c3mi',
+                client_id: 'TcpG7fDvuxoN5cCKALQvZa7CF4NnfUf74RcQKuQq',
                 client_secret: '123456',
                 grant_type: 'password',
-            },{
+            }, {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
             });
             console.info(res.data);
             await AsyncStorage.setItem('token', res.data.access_token);
-
+    
             setTimeout(async () => {
                 let user = await authApis(res.data.access_token).get(endpoints['current-user']);
                 console.info(user.data);
-
+    
                 dispatch({
                     "type": "login",
                     "payload": user.data
                 });
-                nav.navigate("home");
-
+    
+                // Điều hướng đến trang chính
+                navigation.navigate("HomeStack"); // Điều hướng đến HomeStack hoặc màn hình chính
             }, 100);
-
+    
         } catch (err) {
             if (err.response) {
                 console.error("Response Error:", err.response.data);
@@ -71,7 +72,8 @@ const Login = () => {
         } finally {
             setLoading(false);
         }
-    }
+    };
+    
 
     return (
         <View style={MyStyles.container}>
