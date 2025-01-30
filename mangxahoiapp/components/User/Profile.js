@@ -132,8 +132,8 @@ const Profile = ({ route, navigation }) => {
          
           {user.vaiTro === 2 && (
             <View style={styles.manageTroContainer}>
-              <Button mode="contained" onPress={() => navigation.navigate('QuanLyTro')}>
-                Quản lý trọ
+              <Button mode="contained" onPress={() => navigation.navigate('ChangePassword')}>
+                Thay đổi mật khẩu
               </Button>
             </View>
           )}
