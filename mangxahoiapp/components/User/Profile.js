@@ -132,7 +132,7 @@ const Profile = ({ route, navigation }) => {
          
           {user.vaiTro === 2 && (
             <View style={styles.manageTroContainer}>
-              <Button mode="contained" onPress={() => navigation.navigate('Profile', { screen: 'ChangePassword' })}>
+              <Button mode="contained" onPress={() => navigation.navigate('ChangePassword')}>
                 Thay đổi mật khẩu
               </Button>
             </View>
