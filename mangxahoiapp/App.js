@@ -12,7 +12,7 @@ import ChiTietBaiDang from "./components/Home/ChiTietBaiDang";
 import TrangCaNhan from "./components/Home/TrangCaNhan";
 import Profile from './components/User/Profile';
 import CreatePost from "./components/Home/CreatePost";
-
+import TimNguoiKhac from './components/Home/TimNguoiKhac';
 
 // Import context và reducer
 import { MyDispatchContext, MyUserContext } from './configs/MyUserContext';
@@ -55,10 +55,12 @@ const HomeStackNavigator = () => {
       <Stack.Screen name="Home" component={Home} options={{ title: "Trang chính" }} />
       <Stack.Screen name="ChiTietBaiDang" component={ChiTietBaiDang} options={{ title: "Chi tiết bài đăng" }} />
       <Stack.Screen name="TrangCaNhan" component={TrangCaNhan} options={{ title: "Trang cá nhân" }} />
-      <Stack.Screen name="CreatePost" component={CreatePost} options={{ title: "Tạo bài đăng" }} /> 
+      <Stack.Screen name="CreatePost" component={CreatePost} options={{ title: "Tạo bài đăng" }} />
+      <Stack.Screen name="TimNguoiKhac" component={TimNguoiKhac} options={{ title: "Tìm người dùng" }} />
     </Stack.Navigator>
   );
 };
+
 
 const ProfileStackNavigator = () => {
   return (

@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Button, ScrollView, Alert } from "react-native";
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from "react-native";
 import { Avatar, ListItem } from "react-native-elements";
 import { Title, Subheading } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
-import { Ionicons } from 'react-native-vector-icons';  
+import { Ionicons } from "react-native-vector-icons";
 import APIs, { endpoints } from "../../configs/APIs";
-
-import { getDatabase, ref, set } from "firebase/database";
 
 const Home = () => {
   const [baidangs, setBaidangs] = useState([]);
   const [filteredBaidangs, setFilteredBaidangs] = useState([]);
-  const [filterType, setFilterType] = useState('');
-  const [users, setUsers] = useState({});  
+  const [filterType, setFilterType] = useState("");
+  const [users, setUsers] = useState({});
+  const [refreshing, setRefreshing] = useState(false); // Thêm state để làm mới
   const navigation = useNavigation();
 
   const loadBaidangs = async () => {
     try {
       const res = await APIs.get(endpoints["baidangs"]);
-      const reversedData = res.data.reverse();  
+      const reversedData = res.data.reverse();
 
       const usersData = {};
       for (const baiDang of reversedData) {
@@ -29,8 +28,8 @@ const Home = () => {
       }
 
       setBaidangs(reversedData);
-      setFilteredBaidangs(reversedData); 
-      setUsers(usersData);  
+      setFilteredBaidangs(reversedData);
+      setUsers(usersData);
     } catch (error) {
       console.error("Error loading posts:", error);
     }
@@ -42,15 +41,15 @@ const Home = () => {
 
   useEffect(() => {
     if (filterType) {
-      const filtered = baidangs.filter(b => {
+      const filtered = baidangs.filter((b) => {
         const user = users[b.nguoiDangBai];
         if (!user || !user.vaiTro) return false;
-        
+
         if (filterType === "Tìm phòng") {
-          return user.vaiTro === 3;  
+          return user.vaiTro === 3;
         }
         if (filterType === "Cho thuê") {
-          return user.vaiTro === 2;  
+          return user.vaiTro === 2;
         }
         return false;
       });
@@ -59,6 +58,12 @@ const Home = () => {
       setFilteredBaidangs(baidangs);
     }
   }, [filterType, baidangs, users]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true); // Bắt đầu trạng thái làm mới
+    await loadBaidangs(); // Gọi API để làm mới dữ liệu
+    setRefreshing(false); // Kết thúc trạng thái làm mới
+  };
 
   const getTagByVaiTro = (vaiTro) => {
     if (vaiTro === 1) return "Quản trị viên";
@@ -75,7 +80,12 @@ const Home = () => {
   };
 
   return (
-    <ScrollView style={styles.container}> 
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Bài đăng</Text>
         <Ionicons
@@ -91,8 +101,9 @@ const Home = () => {
           color="#0288d1"
           style={styles.addIcon}
           onPress={() => navigation.navigate("CreatePost")}
-        />  
+        />
       </View>
+
       {filteredBaidangs.length === 0 ? (
         <Text>Không có bài đăng với loại này.</Text>
       ) : (
@@ -105,11 +116,17 @@ const Home = () => {
             <Avatar
               rounded
               size="medium"
-              source={users[b.nguoiDangBai]?.image ? { uri: `https://chickenphong.pythonanywhere.com${users[b.nguoiDangBai].image}` } : null}
+              source={
+                users[b.nguoiDangBai]?.image
+                  ? { uri: `https://chickenphong.pythonanywhere.com${users[b.nguoiDangBai].image}` }
+                  : null
+              }
             />
             <ListItem.Content>
               <View style={styles.postHeader}>
-                <Title>{users[b.nguoiDangBai]?.last_name} {users[b.nguoiDangBai]?.first_name}</Title>
+                <Title>
+                  {users[b.nguoiDangBai]?.last_name} {users[b.nguoiDangBai]?.first_name}
+                </Title>
                 <Text style={getTagStyle(users[b.nguoiDangBai]?.vaiTro)}>
                   {getTagByVaiTro(users[b.nguoiDangBai]?.vaiTro)}
                 </Text>
@@ -122,7 +139,7 @@ const Home = () => {
           </ListItem>
         ))
       )}
-    </ScrollView>  
+    </ScrollView>
   );
 };
 
@@ -146,11 +163,6 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     marginRight: 10,
-  },
-  filterContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 15,
   },
   subtitle: {
     color: "#555",
