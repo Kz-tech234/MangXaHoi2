@@ -9,6 +9,8 @@ export const endpoints = {
     'current-user': '/users/current-user/', 
     'register': '/users/',
     'userDetail': '/users/',
+    'thongbaosukiens': '/thongbaosukiens/',  // API cho thông báo
+    'khaosats': '/khaosats/',  // API cho khảo sát
 }
 
 export const authApis = (token) => {

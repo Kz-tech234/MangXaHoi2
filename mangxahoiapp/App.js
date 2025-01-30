@@ -13,6 +13,8 @@ import TrangCaNhan from "./components/Home/TrangCaNhan";
 import Profile from './components/User/Profile';
 import CreatePost from "./components/Home/CreatePost";
 import TimNguoiKhac from './components/Home/TimNguoiKhac';
+import Notifications from './components/Home/Notifications';
+import Surveys from './components/Home/Surveys';
 
 // Import context và reducer
 import { MyDispatchContext, MyUserContext } from './configs/MyUserContext';
@@ -23,8 +25,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
 import { getAnalytics } from 'firebase/analytics';
-import Notifications from './components/Home/Notifications';
-import Surveys from './components/Home/Surveys';
+
 
 // Kiểm tra và chỉ khởi tạo Firebase nếu chưa có instance nào
 const firebaseConfig = {
