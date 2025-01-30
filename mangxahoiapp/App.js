@@ -15,6 +15,7 @@ import CreatePost from "./components/Home/CreatePost";
 import TimNguoiKhac from './components/Home/TimNguoiKhac';
 import Notifications from './components/Home/Notifications';
 import Surveys from './components/Home/Surveys';
+import ChangePassword from './components/User/ChangePassword';
 
 // Import context và reducer
 import { MyDispatchContext, MyUserContext } from './configs/MyUserContext';
@@ -69,6 +70,7 @@ const ProfileStackNavigator = () => {
       <Stack.Screen name="Profile" component={Profile} options={{ title: "Tài khoản" }} />
       <Stack.Screen name="ChiTietBaiDang" component={ChiTietBaiDang} options={{ title: "Chi tiết bài đăng" }} />
       <Stack.Screen name="TrangCaNhan" component={TrangCaNhan} options={{ title: "Trang cá nhân" }} />
+      <Stack.Screen name="ChangePassword" component={ChangePassword} options={{ title: "Thay đổi mật khẩu" }} />
     </Stack.Navigator>
   );
 };
