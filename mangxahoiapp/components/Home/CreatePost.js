@@ -1,10 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react"; // Đảm bảo có useContext
 import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
-import APIs, { endpoints } from "../../configs/APIs";
+import APIs, { endpoints, authApis } from "../../configs/APIs";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { MyUserContext } from "../../configs/MyUserContext"; //  Đảm bảo import đúng context
 
 const CreatePost = ({ navigation }) => {
+  const user = useContext(MyUserContext); //  Lấy thông tin user hiện tại
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+
+  console.log("User Context:", user); // Debug để kiểm tra giá trị user
+
+  if (!user) {
+    Alert.alert("Lỗi", "Bạn chưa đăng nhập!");
+    return null;
+  }
 
   const handleSubmit = async () => {
     if (!title.trim() || !content.trim()) {
@@ -13,9 +23,10 @@ const CreatePost = ({ navigation }) => {
     }
 
     try {
-      await APIs.post(endpoints["create_baidang"], {
+      await APIs.post(endpoints["baidangs"], {
         tieuDe: title,
         noiDung: content,
+        nguoiDangBai: user.id, // ⚠️ Cần truyền user ID vào API
       });
       Alert.alert("Thành công", "Bài đăng đã được tạo!");
       navigation.goBack();
