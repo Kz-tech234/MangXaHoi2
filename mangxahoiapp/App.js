@@ -15,6 +15,7 @@ import CreatePost from "./components/Home/CreatePost";
 import TimNguoiKhac from './components/Home/TimNguoiKhac';
 import Notifications from './components/Home/Notifications';
 import Surveys from './components/Home/Surveys';
+import SurveyDetail from "./components/Home/SurveyDetail";
 import ChangePassword from './components/User/ChangePassword';
 
 // Import context và reducer
@@ -90,6 +91,7 @@ const SurveysStackNavigator = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen name="Surveys" component={Surveys} options={{ title: "Khảo sát" }} />
+      <Stack.Screen name="SurveyDetail" component={SurveyDetail} options={{ title: "Chi tiết khảo sát" }} />
     </Stack.Navigator>
   );
 };

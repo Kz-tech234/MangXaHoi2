@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, StyleSheet, Button, ActivityIndicator } from "react-native";
 import APIs, { endpoints } from "../../configs/APIs";
 import { ListItem } from "react-native-elements";
-import { decode } from 'html-entities';
+import { decode } from "html-entities";
 
-const Surveys = () => {
+const Surveys = ({ navigation }) => {
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,21 +31,20 @@ const Surveys = () => {
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Khảo Sát</Text>
 
-      {loading ? <ActivityIndicator size="large" color="#0288d1" /> : null}
-
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {loading && <ActivityIndicator size="large" color="#0288d1" />}
+      {error && <Text style={styles.errorText}>{error}</Text>}
 
       {surveys.length === 0 && !loading ? (
         <Text style={styles.emptyText}>Không có khảo sát nào.</Text>
       ) : (
         surveys.map((item) => (
-          <ListItem key={item.id} bottomDivider>
+          <ListItem key={item.id} bottomDivider onPress={() => navigation.navigate("SurveyDetail", { survey: item })}>
             <ListItem.Content>
               <ListItem.Title style={styles.title}>{item.tieuDe || "Không có tiêu đề"}</ListItem.Title>
               <ListItem.Subtitle style={styles.subtitle}>
                 {item.moTa ? decode(item.moTa) : "Không có mô tả"}
               </ListItem.Subtitle>
-              <Button title="Tham gia" onPress={() => alert("Tham gia khảo sát")} />
+              <Button title="Làm khảo sát" onPress={() => navigation.navigate("SurveyDetail", { survey: item })} />
             </ListItem.Content>
           </ListItem>
         ))
@@ -55,36 +54,12 @@ const Surveys = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-    backgroundColor: "#fff",
-  },
-  header: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  emptyText: {
-    textAlign: "center",
-    marginTop: 20,
-    color: "gray",
-  },
-  errorText: {
-    textAlign: "center",
-    marginTop: 20,
-    color: "red",
-    fontSize: 16,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#555",
-  },
+  container: { flex: 1, padding: 10, backgroundColor: "#fff" },
+  header: { fontSize: 22, fontWeight: "bold", marginBottom: 15, textAlign: "center" },
+  emptyText: { textAlign: "center", marginTop: 20, color: "gray" },
+  errorText: { textAlign: "center", marginTop: 20, color: "red", fontSize: 16 },
+  title: { fontSize: 16, fontWeight: "bold" },
+  subtitle: { fontSize: 14, color: "#555" },
 });
 
 export default Surveys;

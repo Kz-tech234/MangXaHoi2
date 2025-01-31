@@ -45,10 +45,10 @@ const Home = () => {
         const user = users[b.nguoiDangBai];
         if (!user || !user.vaiTro) return false;
 
-        if (filterType === "Tìm phòng") {
+        if (filterType === "Cựu sinh viên") {
           return user.vaiTro === 3;
         }
-        if (filterType === "Cho thuê") {
+        if (filterType === "Giảng viên") {
           return user.vaiTro === 2;
         }
         return false;

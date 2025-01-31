@@ -11,6 +11,9 @@ export const endpoints = {
     'userDetail': '/users/',
     'thongbaosukiens': '/thongbaosukiens/',  // API cho thông báo
     'khaosats': '/khaosats/',  // API cho khảo sát
+    'cauhois': "/cauhois/",  // Đảm bảo API đúng với backend
+    'tralois': "/tralois/",
+    'luachons': "/luachons/",
 }
 
 export const authApis = (token) => {
