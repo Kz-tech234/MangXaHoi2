@@ -8,7 +8,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import Home from './components/Home/Home';
 import Login from './components/User/Login';
 import Register from './components/User/Register';
-import ChiTietBaiDang from "./components/Home/ChiTietBaiDang";
+import ChiTietBaiDang from './components/Home/ChiTietBaiDang';
 import TrangCaNhan from "./components/Home/TrangCaNhan";
 import Profile from './components/User/Profile';
 import CreatePost from "./components/Home/CreatePost";
@@ -17,6 +17,7 @@ import Notifications from './components/Home/Notifications';
 import Surveys from './components/Home/Surveys';
 import SurveyDetail from "./components/Home/SurveyDetail";
 import ChangePassword from './components/User/ChangePassword';
+
 
 // Import context và reducer
 import { MyDispatchContext, MyUserContext } from './configs/MyUserContext';

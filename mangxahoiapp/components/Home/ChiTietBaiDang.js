@@ -1,163 +1,191 @@
-import React, { useState, useEffect, useContext } from "react";
-import { View, Text, StyleSheet, ScrollView, TextInput, Button, Alert } from "react-native";
-import { Avatar } from "react-native-elements";
-import { Subheading } from "react-native-paper";
+import React, { useState, useEffect, useContext, useMemo } from "react";
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, Modal } from "react-native";
+import { Avatar, Icon } from "react-native-elements";
 import { MyUserContext } from "../../configs/MyUserContext";
 
+const reactions = {
+    like: "👍", 
+    love: "❤️", 
+    haha: "😆", 
+    wow: "😮", 
+    sad: "😢", 
+    angry: "😡"
+};
 
 const ChiTietBaiDang = ({ route }) => {
-  const userLogin = useContext(MyUserContext);
-  const { baiDang } = route.params;
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
-  const [postOwner, setPostOwner] = useState(null);
-  const [userComments, setUserComments] = useState({});
+    const userLogin = useContext(MyUserContext);
+    const { baiDang } = route.params;
+    const [postOwner, setPostOwner] = useState(null);
+    const [comments, setComments] = useState([]);
+    const [sortOption, setSortOption] = useState("Bình luận hàng đầu");
+    const [showSortModal, setShowSortModal] = useState(false);
+    const [showAllComments, setShowAllComments] = useState(false);
+    const [showCommentInput, setShowCommentInput] = useState(false);
+    const [newComment, setNewComment] = useState("");
+    const [showReactions, setShowReactions] = useState(false);
+    const [selectedReaction, setSelectedReaction] = useState(null);
+    const [reactionCounts, setReactionCounts] = useState({
+        like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0
+    });
 
-  useEffect(() => {
-    if (!baiDang?.id) return;
+    useEffect(() => {
+        if (!baiDang?.id) return;
 
-    setComments([]); // Reset danh sách bình luận
+        fetch(`https://chickenphong.pythonanywhere.com/users/${baiDang.nguoiDangBai}`)
+            .then(response => response.json())
+            .then(userData => setPostOwner(userData))
+            .catch(error => console.error("Lỗi khi lấy thông tin người đăng bài:", error));
 
-    // Lấy thông tin người đăng bài
-    fetch(`https://chickenphong.pythonanywhere.com/users/${baiDang.nguoiDangBai}`)
-      .then(response => response.json())
-      .then(userData => setPostOwner(userData))
-      .catch(error => console.error("Lỗi khi lấy thông tin người đăng bài:", error));
+        fetch(`https://chickenphong.pythonanywhere.com/binhluans/?baiDang=${baiDang.id}`)
+            .then(response => response.json())
+            .then(data => setComments(data))
+            .catch(error => console.error("Lỗi khi lấy bình luận:", error));
+    }, [baiDang.id]);
 
-    // Lấy bình luận của bài đăng hiện tại
-    fetch(`https://chickenphong.pythonanywhere.com/binhluans/?baiDang=${baiDang.id}`)
-      .then(response => response.json())
-      .then(async (data) => {
-        setComments(data.filter(comment => comment.baiDang === baiDang.id)); // Chỉ giữ bình luận đúng bài đăng
-
-        // Lấy danh sách người bình luận
-        const userIds = [...new Set(data.map(comment => comment.nguoiBinhLuan))];
-        const usersData = {};
-        await Promise.all(
-          userIds.map(async (userId) => {
-            const res = await fetch(`https://chickenphong.pythonanywhere.com/users/${userId}`);
-            const userData = await res.json();
-            usersData[userId] = userData;
-          })
-        );
-        setUserComments(usersData);
-      })
-      .catch(error => console.error("Lỗi khi lấy bình luận:", error));
-
-  }, [baiDang.id]); // Chạy lại khi bài đăng thay đổi
-
-  const handleCommentSubmit = () => {
-    if (newComment.trim() === "") return;
-
-    fetch("https://chickenphong.pythonanywhere.com/binhluans/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        baiDang: baiDang.id,
-        noiDung: newComment,
-        nguoiBinhLuan: userLogin.id, 
-      }),
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.baiDang === baiDang.id) {
-          setComments(prevComments => [data, ...prevComments]);
-
-          if (!userComments[userLogin.id]) {
-            fetch(`https://chickenphong.pythonanywhere.com/users/${userLogin.id}`)
-              .then(res => res.json())
-              .then(userData => {
-                setUserComments(prev => ({
-                  ...prev,
-                  [userLogin.id]: userData,
-                }));
-              })
-              .catch(error => console.error("Lỗi khi lấy thông tin người bình luận:", error));
-          }
+    // Xử lý chọn / bỏ chọn cảm xúc
+    const handleReactionSelect = (reaction) => {
+        setShowReactions(false);
+        if (selectedReaction === reaction) {
+            setReactionCounts(prev => ({ ...prev, [reaction]: prev[reaction] - 1 }));
+            setSelectedReaction(null);
+        } else {
+            if (selectedReaction) {
+                setReactionCounts(prev => ({ ...prev, [selectedReaction]: prev[selectedReaction] - 1 }));
+            }
+            setSelectedReaction(reaction);
+            setReactionCounts(prev => ({ ...prev, [reaction]: prev[reaction] + 1 }));
         }
-        setNewComment("");
-      })
-      .catch(error => console.error("Lỗi khi gửi bình luận:", error));
-  };
+    };
 
-  return (
-    <ScrollView style={styles.container}>
-      <View style={styles.postHeader}>
-        {postOwner && (
-          <Avatar 
-            rounded 
-            size="medium" 
-            source={postOwner.image ? { uri: postOwner.image } : require("../../assets/default-avatar.png")}
-            containerStyle={styles.avatar}
-          />
-        )}
-        <View style={styles.postInfo}>
-          <Text style={styles.username}>
-            {postOwner ? `${postOwner.first_name} ${postOwner.last_name}` : "Người dùng"}
-          </Text>
-          <Text style={styles.date}>{new Date(baiDang.created_date).toLocaleString()}</Text>
-        </View>
-      </View>
+    return (
+        <ScrollView style={styles.container}>
+            <View style={styles.postHeader}>
+                {postOwner && (
+                    <Avatar rounded size="medium" source={postOwner.image ? { uri: postOwner.image } : require("../../assets/default-avatar.png")} containerStyle={styles.avatar} />
+                )}
+                <View>
+                    <Text style={styles.username}>{postOwner ? `${postOwner.first_name} ${postOwner.last_name}` : "Người dùng"}</Text>
+                    <Text style={styles.date}>{new Date(baiDang.created_date).toLocaleString()}</Text>
+                </View>
+            </View>
 
-      <View style={styles.contentBox}>
-        <Subheading style={styles.subtitle}>{baiDang.tieuDe}</Subheading>
-        <Text style={styles.content}>{baiDang.thongTin}</Text>
-      </View>
+            <Text style={styles.content}>{baiDang.thongTin}</Text>
 
-      <View style={styles.commentSection}>
-        <TextInput
-          style={styles.commentInput}
-          placeholder="Nhập bình luận..."
-          value={newComment}
-          onChangeText={setNewComment}
-        />
-        <Button title="Gửi" onPress={handleCommentSubmit} />
-      </View>
+            {baiDang.image && <Image source={{ uri: baiDang.image }} style={styles.postImage} />}
 
-      <Text style={styles.commentListTitle}>Danh sách bình luận:</Text>
-      {comments.map(comment => (
-        <View key={comment.id} style={styles.commentItem}>
-          <View style={styles.commentHeader}>
-            <Avatar 
-              rounded 
-              size="small" 
-              source={userComments[comment.nguoiBinhLuan]?.image 
-                ? { uri: userComments[comment.nguoiBinhLuan].image } 
-                : require("../../assets/default-avatar.png")
-              }
-              containerStyle={styles.avatar}
-            />
-            <Text style={styles.commentUser}>
-              {userComments[comment.nguoiBinhLuan]?.first_name || "Ẩn danh"} {userComments[comment.nguoiBinhLuan]?.last_name || ""}
+            <View style={styles.postFooter}>
+                <TouchableOpacity 
+                    style={styles.footerButton} 
+                    onPress={() => handleReactionSelect("like")}
+                    onLongPress={() => setShowReactions(true)}
+                >
+                    <Text style={styles.reactionText}>
+                        {selectedReaction ? reactions[selectedReaction] : "👍"}
+                    </Text>
+                    <Text style={[styles.footerText, { color: selectedReaction ? "#007bff" : "#666" }]}>
+                        {selectedReaction ? "Bạn đã thích" : "Thích"}
+                    </Text>
+                </TouchableOpacity>
+
+                {showReactions && (
+                    <View style={styles.reactionPopup}>
+                        {Object.keys(reactions).map(reaction => (
+                            <TouchableOpacity key={reaction} onPress={() => handleReactionSelect(reaction)}>
+                                <Text style={styles.reactionOption}>{reactions[reaction]}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
+
+                <TouchableOpacity style={styles.footerButton} onPress={() => setShowCommentInput(!showCommentInput)}>
+                    <Icon name="chat-bubble-outline" type="material" color="#666" />
+                    <Text style={styles.footerText}>Bình luận</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.footerButton}>
+                    <Icon name="share" type="material" color="#666" />
+                    <Text style={styles.footerText}>Chia sẻ</Text>
+                </TouchableOpacity>
+            </View>
+
+            <Text style={styles.reactionCountText}>
+                {Object.keys(reactions).map(reaction => (
+                    <Text key={reaction}>
+                        {reactions[reaction]} {reactionCounts[reaction]}{"  "}
+                    </Text>
+                ))}
             </Text>
-          </View>
-          <Text style={styles.commentContent}>{comment.noiDung}</Text>
-          <Text style={styles.commentDate}>{new Date(comment.created_date).toLocaleString()}</Text>
-        </View>
-      ))}
-    </ScrollView>
-  );
+
+            <View style={styles.commentHeader}>
+                <Text style={styles.commentListTitle}>Bình luận ({comments.length})</Text>
+                <TouchableOpacity onPress={() => setShowSortModal(true)} style={styles.sortButton}>
+                    <Text style={styles.sortText}>{sortOption}</Text>
+                    <Icon name="arrow-drop-down" type="material" color="#666" />
+                </TouchableOpacity>
+            </View>
+
+            {comments.map(comment => (
+                <View key={comment.id} style={styles.commentItem}>
+                    <Avatar rounded size="small" source={require("../../assets/default-avatar.png")} />
+                    <View style={styles.commentContent}>
+                        <Text style={styles.commentUser}>{comment.userName || "Ẩn danh"}</Text>
+                        <Text>{comment.noiDung}</Text>
+                    </View>
+                </View>
+            ))}
+        </ScrollView>
+    );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 10 },
-  postHeader: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
-  avatar: { marginRight: 10 },
-  postInfo: { flex: 1 },
-  username: { fontSize: 18, fontWeight: "bold" },
-  date: { fontSize: 14, color: "#888" },
-  contentBox: { backgroundColor: "#e0f7fa", padding: 15, borderRadius: 8 },
-  subtitle: { fontSize: 18, fontWeight: "bold" },
-  commentSection: { marginTop: 20, flexDirection: "row", alignItems: "center" },
-  commentInput: { height: 40, borderColor: "#ddd", borderWidth: 1, borderRadius: 4, flex: 1, paddingHorizontal: 10 },
-  commentListTitle: { fontSize: 18, fontWeight: "bold", marginTop: 20 },
-  commentItem: { marginBottom: 10, borderBottomWidth: 1, borderBottomColor: "#ddd", paddingBottom: 10 },
-  commentHeader: { flexDirection: "row", alignItems: "center" },
-  commentUser: { fontSize: 16, fontWeight: "bold", marginLeft: 10 },
-  commentContent: { fontSize: 14 },
-  commentDate: { fontSize: 12, color: "#888" },
+    container: { flex: 1, backgroundColor: "#fff", padding: 10 },
+    postFooter: { flexDirection: "row", justifyContent: "space-around", paddingVertical: 10, borderTopWidth: 1, borderTopColor: "#ddd" },
+    footerButton: { flexDirection: "row", alignItems: "center" },
+    footerText: { marginLeft: 5, fontSize: 14, color: "#666" },
+    reactionPopup: { flexDirection: "row", position: "absolute", bottom: 50, backgroundColor: "white", borderRadius: 10, padding: 5, flexWrap: "wrap" },
+    reactionOption: { fontSize: 20, marginHorizontal: 5 },
+    reactionText: { fontSize: 18, marginRight: 5 },
+    reactionCountText: { textAlign: "center", fontSize: 14, color: "#666", marginTop: 5 },
+    container: { flex: 1, backgroundColor: "#fff", padding: 10 },
+    postHeader: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
+    avatar: { marginRight: 10 },
+    username: { fontSize: 16, fontWeight: "bold" },
+    date: { fontSize: 12, color: "#777" },
+    content: { fontSize: 16, marginBottom: 10 },
+    postImage: { width: "100%", height: 300, borderRadius: 10, marginBottom: 10 },
+    postFooter: { flexDirection: "row", justifyContent: "space-around", paddingVertical: 10, borderTopWidth: 1, borderTopColor: "#ddd" },
+    footerButton: { flexDirection: "row", alignItems: "center" },
+    footerText: { marginLeft: 5, fontSize: 14, color: "#666" },
+    commentInputContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "#f5f5f5",
+      borderRadius: 20,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      marginVertical: 10,
+      marginHorizontal: 10,
+    },
+    commentInput: {
+      flex: 1,
+      fontSize: 14,
+      color: "#333",
+    },
+    sendButton: {
+      paddingHorizontal: 10,
+    },
+    commentHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+    sortButton: { flexDirection: "row", alignItems: "center", padding: 10, backgroundColor: "#eee", borderRadius: 10 },
+    sortText: { fontSize: 14, fontWeight: "bold", marginRight: 5 },
+    modalOverlay: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
+    sortModal: { backgroundColor: "#fff", padding: 15, borderRadius: 10, width: "100%" },
+    sortOption: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#ddd" },
+    sortOptionTitle: { fontSize: 16, fontWeight: "bold" },
+    sortOptionDescription: { fontSize: 14, color: "#666" },
+    commentItem: { flexDirection: "row", alignItems: "center", marginVertical: 5 },
+    commentContent: { marginLeft: 10, backgroundColor: "#f0f0f0", padding: 10, borderRadius: 10 },
+    commentUser: { fontSize: 14, fontWeight: "bold", marginBottom: 3 },
+
 });
 
 export default ChiTietBaiDang;
