@@ -14,18 +14,23 @@ const ChiTietBaiDang = ({ route, navigation }) => {
   const [survey, setSurvey] = useState(null);
 
   useEffect(() => {
+    if (!baiDang.id) return;
+  
+    // Reset comments để tránh trộn dữ liệu cũ
+    setComments([]);
+  
     // Lấy thông tin người đăng bài
     fetch(`https://chickenphong.pythonanywhere.com/users/${baiDang.nguoiDangBai}`)
       .then(response => response.json())
       .then(userData => setPostOwner(userData))
       .catch(error => console.error("Lỗi khi lấy thông tin người đăng bài:", error));
-
-    // Lấy bình luận liên quan đến bài đăng
+  
+    // Lấy bình luận chỉ của bài đăng hiện tại
     fetch(`https://chickenphong.pythonanywhere.com/binhluans/?baiDang=${baiDang.id}`)
       .then(response => response.json())
-      .then(data => setComments(data.reverse()))
+      .then(data => setComments(data)) // Không nối thêm dữ liệu cũ
       .catch(error => console.error("Lỗi khi lấy bình luận:", error));
-
+  
     // Lấy thông tin cảm xúc
     fetch(`https://chickenphong.pythonanywhere.com/reactions/?baiDang=${baiDang.id}`)
       .then(response => response.json())
@@ -33,10 +38,10 @@ const ChiTietBaiDang = ({ route, navigation }) => {
       .catch(error => console.error("Lỗi khi lấy cảm xúc:", error));
 
     // Lấy khảo sát nếu có
-    fetch(`https://chickenphong.pythonanywhere.com/khaosats/?baiDang=${baiDang.id}`)
-      .then(response => response.json())
-      .then(data => setSurvey(data[0]))
-      .catch(error => console.error("Lỗi khi lấy khảo sát:", error));
+    // fetch(`https://chickenphong.pythonanywhere.com/khaosats/?baiDang=${baiDang.id}`)
+    //   .then(response => response.json())
+    //   .then(data => setSurvey(data[0]))
+    //   .catch(error => console.error("Lỗi khi lấy khảo sát:", error));
   }, [baiDang.id]);
 
   const handleCommentSubmit = () => {
@@ -55,7 +60,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
     })
       .then((response) => response.json())
       .then((data) => {
-        setComments([data, ...comments]);
+        setComments((prevComments) => [data, ...prevComments]); // Chỉ cập nhật danh sách bình luận của bài đăng hiện tại
         setNewComment("");
       })
       .catch((error) => console.error("Lỗi khi gửi bình luận:", error));
