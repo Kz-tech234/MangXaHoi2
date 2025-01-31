@@ -79,12 +79,6 @@ const SurveyDetail = ({ route, navigation }) => {
         Alert.alert("Lỗi", "Không thể gửi khảo sát.");
     }
 };
-
-
-
-  
-  
-
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.header}>{survey.tieuDe}</Text>

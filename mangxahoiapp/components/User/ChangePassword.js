@@ -4,6 +4,7 @@ import { TextInput, Button } from "react-native-paper";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MyUserContext } from "../../configs/MyUserContext";
+import qs from 'qs';
 
 const ChangePassword = ({ navigation }) => {
   const user = useContext(MyUserContext);
@@ -19,25 +20,27 @@ const ChangePassword = ({ navigation }) => {
   
     setLoading(true);
     try {
-      const token = await AsyncStorage.getItem("token"); // Lấy token từ AsyncStorage
+      const token = await AsyncStorage.getItem("token"); 
+  
+      const data = qs.stringify({ 
+        old_password: currentPassword,
+        new_password: newPassword,
+      });
   
       const response = await axios.post(
         `https://chickenphong.pythonanywhere.com/users/change-password/`,
-        JSON.stringify({  // 🔥 Đảm bảo dữ liệu gửi lên là JSON hợp lệ
-          old_password: currentPassword,
-          new_password: newPassword,
-        }),
+        data, 
         {
           headers: {
-            "Content-Type": "application/json", //  Định dạng phải là JSON
-            "Authorization": `Bearer ${token}`, //  Thêm token xác thực
+            "Content-Type": "application/x-www-form-urlencoded", 
+            "Authorization": `Bearer ${token}`,
           },
         }
       );
   
       if (response.status === 200) {
         Alert.alert("Thành công", "Mật khẩu đã được thay đổi thành công!");
-        navigation.goBack(); // Quay về trang tài khoản sau khi đổi thành công
+        navigation.goBack();
       }
     } catch (error) {
       console.error("Lỗi khi đổi mật khẩu:", error);

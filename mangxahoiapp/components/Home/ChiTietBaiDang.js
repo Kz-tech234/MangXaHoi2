@@ -1,48 +1,50 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, Text, StyleSheet, ScrollView, TextInput, Button, Alert, TouchableOpacity, Image } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TextInput, Button, Alert } from "react-native";
 import { Avatar } from "react-native-elements";
 import { Subheading } from "react-native-paper";
 import { MyUserContext } from "../../configs/MyUserContext";
 
-const ChiTietBaiDang = ({ route, navigation }) => {
+
+const ChiTietBaiDang = ({ route }) => {
   const userLogin = useContext(MyUserContext);
   const { baiDang } = route.params;
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [postOwner, setPostOwner] = useState(null);
-  const [reactions, setReactions] = useState([]);
-  const [survey, setSurvey] = useState(null);
+  const [userComments, setUserComments] = useState({});
 
   useEffect(() => {
-    if (!baiDang.id) return;
-  
-    // Reset comments để tránh trộn dữ liệu cũ
-    setComments([]);
-  
+    if (!baiDang?.id) return;
+
+    setComments([]); // Reset danh sách bình luận
+
     // Lấy thông tin người đăng bài
     fetch(`https://chickenphong.pythonanywhere.com/users/${baiDang.nguoiDangBai}`)
       .then(response => response.json())
       .then(userData => setPostOwner(userData))
       .catch(error => console.error("Lỗi khi lấy thông tin người đăng bài:", error));
-  
-    // Lấy bình luận chỉ của bài đăng hiện tại
+
+    // Lấy bình luận của bài đăng hiện tại
     fetch(`https://chickenphong.pythonanywhere.com/binhluans/?baiDang=${baiDang.id}`)
       .then(response => response.json())
-      .then(data => setComments(data)) // Không nối thêm dữ liệu cũ
-      .catch(error => console.error("Lỗi khi lấy bình luận:", error));
-  
-    // Lấy thông tin cảm xúc
-    fetch(`https://chickenphong.pythonanywhere.com/reactions/?baiDang=${baiDang.id}`)
-      .then(response => response.json())
-      .then(data => setReactions(data))
-      .catch(error => console.error("Lỗi khi lấy cảm xúc:", error));
+      .then(async (data) => {
+        setComments(data.filter(comment => comment.baiDang === baiDang.id)); // Chỉ giữ bình luận đúng bài đăng
 
-    // Lấy khảo sát nếu có
-    // fetch(`https://chickenphong.pythonanywhere.com/khaosats/?baiDang=${baiDang.id}`)
-    //   .then(response => response.json())
-    //   .then(data => setSurvey(data[0]))
-    //   .catch(error => console.error("Lỗi khi lấy khảo sát:", error));
-  }, [baiDang.id]);
+        // Lấy danh sách người bình luận
+        const userIds = [...new Set(data.map(comment => comment.nguoiBinhLuan))];
+        const usersData = {};
+        await Promise.all(
+          userIds.map(async (userId) => {
+            const res = await fetch(`https://chickenphong.pythonanywhere.com/users/${userId}`);
+            const userData = await res.json();
+            usersData[userId] = userData;
+          })
+        );
+        setUserComments(usersData);
+      })
+      .catch(error => console.error("Lỗi khi lấy bình luận:", error));
+
+  }, [baiDang.id]); // Chạy lại khi bài đăng thay đổi
 
   const handleCommentSubmit = () => {
     if (newComment.trim() === "") return;
@@ -58,12 +60,26 @@ const ChiTietBaiDang = ({ route, navigation }) => {
         nguoiBinhLuan: userLogin.id, 
       }),
     })
-      .then((response) => response.json())
-      .then((data) => {
-        setComments((prevComments) => [data, ...prevComments]); // Chỉ cập nhật danh sách bình luận của bài đăng hiện tại
+      .then(response => response.json())
+      .then(data => {
+        if (data.baiDang === baiDang.id) {
+          setComments(prevComments => [data, ...prevComments]);
+
+          if (!userComments[userLogin.id]) {
+            fetch(`https://chickenphong.pythonanywhere.com/users/${userLogin.id}`)
+              .then(res => res.json())
+              .then(userData => {
+                setUserComments(prev => ({
+                  ...prev,
+                  [userLogin.id]: userData,
+                }));
+              })
+              .catch(error => console.error("Lỗi khi lấy thông tin người bình luận:", error));
+          }
+        }
         setNewComment("");
       })
-      .catch((error) => console.error("Lỗi khi gửi bình luận:", error));
+      .catch(error => console.error("Lỗi khi gửi bình luận:", error));
   };
 
   return (
@@ -73,7 +89,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
           <Avatar 
             rounded 
             size="medium" 
-            source={postOwner.image ? { uri: postOwner.image } : null}
+            source={postOwner.image ? { uri: postOwner.image } : require("../../assets/default-avatar.png")}
             containerStyle={styles.avatar}
           />
         )}
@@ -90,13 +106,6 @@ const ChiTietBaiDang = ({ route, navigation }) => {
         <Text style={styles.content}>{baiDang.thongTin}</Text>
       </View>
 
-      {survey && (
-        <View style={styles.surveySection}>
-          <Text style={styles.surveyTitle}>{survey.tieuDe}</Text>
-          <Text style={styles.surveyDescription}>{survey.moTa}</Text>
-        </View>
-      )}
-
       <View style={styles.commentSection}>
         <TextInput
           style={styles.commentInput}
@@ -108,8 +117,22 @@ const ChiTietBaiDang = ({ route, navigation }) => {
       </View>
 
       <Text style={styles.commentListTitle}>Danh sách bình luận:</Text>
-      {comments.map((comment) => (
+      {comments.map(comment => (
         <View key={comment.id} style={styles.commentItem}>
+          <View style={styles.commentHeader}>
+            <Avatar 
+              rounded 
+              size="small" 
+              source={userComments[comment.nguoiBinhLuan]?.image 
+                ? { uri: userComments[comment.nguoiBinhLuan].image } 
+                : require("../../assets/default-avatar.png")
+              }
+              containerStyle={styles.avatar}
+            />
+            <Text style={styles.commentUser}>
+              {userComments[comment.nguoiBinhLuan]?.first_name || "Ẩn danh"} {userComments[comment.nguoiBinhLuan]?.last_name || ""}
+            </Text>
+          </View>
           <Text style={styles.commentContent}>{comment.noiDung}</Text>
           <Text style={styles.commentDate}>{new Date(comment.created_date).toLocaleString()}</Text>
         </View>
@@ -119,89 +142,22 @@ const ChiTietBaiDang = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    padding: 10,
-  },
-  postHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 15,
-  },
-  avatar: {
-    marginRight: 10,
-  },
-  postInfo: {
-    flex: 1,
-  },
-  username: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  date: {
-    fontSize: 14,
-    color: "#888",
-  },
-  contentBox: {
-    backgroundColor: "#e0f7fa",
-    padding: 15,
-    borderRadius: 8,
-  },
-  subtitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  content: {
-    fontSize: 16,
-    marginTop: 10,
-  },
-  commentSection: {
-    marginTop: 20,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  commentInput: {
-    height: 40,
-    borderColor: "#ddd",
-    borderWidth: 1,
-    borderRadius: 4,
-    flex: 1,
-    paddingHorizontal: 10,
-  },
-  commentListTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 20,
-  },
-  commentItem: {
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-    paddingBottom: 10,
-  },
-  commentContent: {
-    fontSize: 14,
-  },
-  commentDate: {
-    fontSize: 12,
-    color: "#888",
-  },
-  surveySection: {
-    marginTop: 20,
-    backgroundColor: "#f0f0f0",
-    padding: 15,
-    borderRadius: 8,
-  },
-  surveyTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#0288d1",
-  },
-  surveyDescription: {
-    fontSize: 16,
-    marginTop: 10,
-  },
+  container: { flex: 1, backgroundColor: "#fff", padding: 10 },
+  postHeader: { flexDirection: "row", alignItems: "center", marginBottom: 15 },
+  avatar: { marginRight: 10 },
+  postInfo: { flex: 1 },
+  username: { fontSize: 18, fontWeight: "bold" },
+  date: { fontSize: 14, color: "#888" },
+  contentBox: { backgroundColor: "#e0f7fa", padding: 15, borderRadius: 8 },
+  subtitle: { fontSize: 18, fontWeight: "bold" },
+  commentSection: { marginTop: 20, flexDirection: "row", alignItems: "center" },
+  commentInput: { height: 40, borderColor: "#ddd", borderWidth: 1, borderRadius: 4, flex: 1, paddingHorizontal: 10 },
+  commentListTitle: { fontSize: 18, fontWeight: "bold", marginTop: 20 },
+  commentItem: { marginBottom: 10, borderBottomWidth: 1, borderBottomColor: "#ddd", paddingBottom: 10 },
+  commentHeader: { flexDirection: "row", alignItems: "center" },
+  commentUser: { fontSize: 16, fontWeight: "bold", marginLeft: 10 },
+  commentContent: { fontSize: 14 },
+  commentDate: { fontSize: 12, color: "#888" },
 });
 
 export default ChiTietBaiDang;
