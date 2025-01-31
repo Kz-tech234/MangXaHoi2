@@ -2,6 +2,7 @@ import React, { useState, useContext } from "react";
 import { View, Text, StyleSheet, Alert } from "react-native";
 import { TextInput, Button } from "react-native-paper";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MyUserContext } from "../../configs/MyUserContext";
 
 const ChangePassword = ({ navigation }) => {
@@ -15,25 +16,36 @@ const ChangePassword = ({ navigation }) => {
       Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin.");
       return;
     }
-
+  
     setLoading(true);
     try {
+      const token = await AsyncStorage.getItem("token"); // Lấy token từ AsyncStorage
+  
       const response = await axios.post(
-        `https://chickenphong.pythonanywhere.com/users/change-password/`, 
-        {
-          userId: user.id, // ID của người dùng
+        `https://chickenphong.pythonanywhere.com/users/change-password/`,
+        JSON.stringify({  // 🔥 Đảm bảo dữ liệu gửi lên là JSON hợp lệ
           old_password: currentPassword,
           new_password: newPassword,
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json", //  Định dạng phải là JSON
+            "Authorization": `Bearer ${token}`, //  Thêm token xác thực
+          },
         }
       );
-
+  
       if (response.status === 200) {
         Alert.alert("Thành công", "Mật khẩu đã được thay đổi thành công!");
         navigation.goBack(); // Quay về trang tài khoản sau khi đổi thành công
       }
     } catch (error) {
       console.error("Lỗi khi đổi mật khẩu:", error);
-      Alert.alert("Lỗi", "Không thể thay đổi mật khẩu. Hãy kiểm tra lại.");
+      if (error.response) {
+        Alert.alert("Lỗi", `Không thể thay đổi mật khẩu: ${error.response.data.message || "Lỗi không xác định."}`);
+      } else {
+        Alert.alert("Lỗi", "Không thể kết nối đến máy chủ.");
+      }
     } finally {
       setLoading(false);
     }
