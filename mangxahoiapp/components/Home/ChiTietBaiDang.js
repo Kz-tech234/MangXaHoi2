@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, RefreshControl } from "react-native";
 import { Avatar, Icon } from "react-native-elements";
 import { MyUserContext } from "../../configs/MyUserContext";
 
@@ -23,9 +23,15 @@ const ChiTietBaiDang = ({ route, navigation }) => {
     const [reactionCounts, setReactionCounts] = useState({
         like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0
     });
+    const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
         if (!baiDang?.id) return;
+        loadPostData();
+    }, [baiDang.id]);
+
+    const loadPostData = () => {
+        setRefreshing(true);
 
         // Lấy thông tin người đăng bài
         fetch(`https://chickenphong.pythonanywhere.com/users/${baiDang.nguoiDangBai}`)
@@ -33,26 +39,29 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             .then(userData => setPostOwner(userData))
             .catch(error => console.error("Lỗi khi lấy thông tin người đăng bài:", error));
 
+       
         // Lấy bình luận
         fetch(`https://chickenphong.pythonanywhere.com/binhluans/?baiDang=${baiDang.id}`)
-            .then(response => response.json())
-            .then(data => {
-                // Lấy thông tin người dùng cho mỗi bình luận
-                Promise.all(data.map(comment =>
-                    fetch(`https://chickenphong.pythonanywhere.com/users/${comment.nguoiBinhLuan}`)
-                        .then(response => response.json())
-                        .then(userData => ({ ...comment, user: userData }))
-                ))
-                .then(commentsWithUserData => setComments(commentsWithUserData))
-                .catch(error => console.error("Lỗi khi lấy thông tin người dùng:", error));
-            })
-            .catch(error => console.error("Lỗi khi lấy bình luận:", error));
+        .then(response => response.json())
+        .then(data => {
+            // Lọc chỉ những bình luận có baiDang trùng với id của bài đăng
+            const filteredComments = data.filter(comment => comment.baiDang === baiDang.id);
+            
+            // Lấy thông tin người dùng cho mỗi bình luận
+            return Promise.all(filteredComments.map(comment =>
+                fetch(`https://chickenphong.pythonanywhere.com/users/${comment.nguoiBinhLuan}`)
+                    .then(response => response.json())
+                    .then(userData => ({ ...comment, user: userData }))
+            ));
+        })
+        .then(commentsWithUserData => setComments(commentsWithUserData))
+        .catch(error => console.error("Lỗi khi lấy thông tin người dùng:", error));
+
 
         // Lấy các tương tác hiện tại
         fetch(`https://chickenphong.pythonanywhere.com/reactions/?baiDang=${baiDang.id}`)
             .then(response => response.json())
             .then(data => {
-                // Cập nhật số lượng các tương tác
                 const counts = {
                     like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0
                 };
@@ -63,8 +72,9 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 });
                 setReactionCounts(counts);
             })
-            .catch(error => console.error("Lỗi khi lấy dữ liệu tương tác:", error));
-    }, [baiDang.id]);
+            .catch(error => console.error("Lỗi khi lấy dữ liệu tương tác:", error))
+            .finally(() => setRefreshing(false));
+    };
 
     const handleReactionSelect = (reaction) => {
         if (selectedReaction === reaction) {
@@ -117,23 +127,32 @@ const ChiTietBaiDang = ({ route, navigation }) => {
     };
 
     const getImageUrl = (imagePath) => {
-        // Kiểm tra nếu có ảnh hợp lệ, trả về URL đầy đủ
         return imagePath && imagePath.startsWith("http") ? imagePath : `https://chickenphong.pythonanywhere.com${imagePath}`;
     };
 
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView 
+            style={styles.container}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={loadPostData} />
+            }
+        >
             <View style={styles.postHeader}>
                 {postOwner && (
                     <TouchableOpacity 
-                        onPress={() => navigation.navigate('Profile', { userId: baiDang.nguoiDangBai })} // Điều hướng đến Profile người đăng bài
+                        onPress={() => navigation.navigate('TrangCaNhan', { userId: baiDang.nguoiDangBai })} // Điều hướng đến Profile người đăng bài
                     >
-                        <Avatar rounded size="medium" source={getImageUrl(postOwner.image) ? { uri: getImageUrl(postOwner.image) } : require("../../assets/default-avatar.png")} containerStyle={styles.avatar} />
+                        <Avatar 
+                            rounded 
+                            size="medium" 
+                            source={getImageUrl(postOwner.image) ? { uri: getImageUrl(postOwner.image) } : require("../../assets/default-avatar.png")} 
+                            containerStyle={styles.avatar} 
+                        />
                     </TouchableOpacity>
                 )}
                 <View>
                     <TouchableOpacity
-                        onPress={() => navigation.navigate('Profile', { userId: baiDang.nguoiDangBai })} // Điều hướng đến Profile người đăng bài
+                        onPress={() => navigation.navigate('TrangCaNhan', { userId: baiDang.nguoiDangBai })} // Điều hướng đến Profile người đăng bài
                     >
                         <Text style={styles.username}>{postOwner ? `${postOwner.first_name} ${postOwner.last_name}` : "Người dùng"}</Text>
                     </TouchableOpacity>
@@ -190,24 +209,26 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 </View>
             )}
 
-            <Text style={styles.commentListTitle}>Bình luận ({comments.length})</Text>
-            {comments.map(comment => (
-                <View key={comment.id} style={styles.commentItem}>
-                    <TouchableOpacity 
-                        onPress={() => navigation.navigate('TrangCaNhan', { userId: comment.user.id })} // Điều hướng đến Profile người bình luận
-                    >
-                        <Avatar rounded size="small" source={comment.user?.image ? { uri: getImageUrl(comment.user.image) } : require("../../assets/default-avatar.png")} />
-                    </TouchableOpacity>
-                    <View style={styles.commentContent}>
-                        <TouchableOpacity
-                            onPress={() => navigation.navigate('TrangCaNhan', { userId: comment.user.id })} // Điều hướng đến Profile người bình luận
-                        >
-                            <Text style={styles.commentUser}>{comment.user?.first_name} {comment.user?.last_name || "Ẩn danh"}</Text>
-                        </TouchableOpacity>
-                        <Text>{comment.noiDung}</Text>
-                    </View>
-                </View>
-            ))}
+                <Text style={styles.commentListTitle}>Bình luận ({comments.length})</Text>
+                {comments
+                    .filter(comment => comment.baiDang === baiDang.id) // Đảm bảo chỉ hiển thị bình luận của bài đăng đó
+                    .map(comment => (
+                        <View key={comment.id} style={styles.commentItem}>
+                            <TouchableOpacity 
+                                onPress={() => navigation.navigate('TrangCaNhan', { userId: comment.user.id })}
+                            >
+                                <Avatar rounded size="small" source={comment.user?.image ? { uri: getImageUrl(comment.user.image) } : require("../../assets/default-avatar.png")} />
+                            </TouchableOpacity>
+                            <View style={styles.commentContent}>
+                                <TouchableOpacity
+                                    onPress={() => navigation.navigate('TrangCaNhan', { userId: comment.user.id })}
+                                >
+                                    <Text style={styles.commentUser}>{comment.user?.first_name} {comment.user?.last_name || "Ẩn danh"}</Text>
+                                </TouchableOpacity>
+                                <Text>{comment.noiDung}</Text>
+                            </View>
+                        </View>
+                    ))}
         </ScrollView>
     );
 };
@@ -215,11 +236,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#fff", padding: 10 },
     postHeader: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-    username: {
-        fontSize: 16, 
-        fontWeight: "bold", 
-        color: "#333", 
-    },
+    username: { fontSize: 16, fontWeight: "bold", color: "#333" },
     date: { fontSize: 12, color: "#888" },
     content: { fontSize: 14, color: "#333", marginVertical: 10 },
     postImage: { width: "100%", height: 200, marginBottom: 10 },
