@@ -126,7 +126,7 @@ const TrangCaNhan = ({ route, navigation }) => {
   };
 
   const handleMessage = () => {
-    navigation.navigate('ChatScreen', { recipientId: userId });
+    navigation.navigate("ChatScreen", { recipientId: userId, recipientName: userData.first_name });
   };
 
   return (

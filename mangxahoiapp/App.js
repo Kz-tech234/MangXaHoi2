@@ -17,6 +17,7 @@ import Notifications from './components/Home/Notifications';
 import Surveys from './components/Home/Surveys';
 import SurveyDetail from "./components/Home/SurveyDetail";
 import ChangePassword from './components/User/ChangePassword';
+import ChatScreen from "./components/Home/ChatScreen";
 
 
 // Import context và reducer
@@ -61,6 +62,7 @@ const HomeStackNavigator = () => {
       <Stack.Screen name="TrangCaNhan" component={TrangCaNhan} options={{ title: "Trang cá nhân" }} />
       <Stack.Screen name="CreatePost" component={CreatePost} options={{ title: "Tạo bài đăng" }} />
       <Stack.Screen name="TimNguoiKhac" component={TimNguoiKhac} options={{ title: "Tìm người dùng" }} />
+      <Stack.Screen name="ChatScreen" component={ChatScreen} options={{ title: "Nhắn tin" }} />
     </Stack.Navigator>
   );
 };
