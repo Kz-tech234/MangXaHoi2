@@ -194,13 +194,13 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             {comments.map(comment => (
                 <View key={comment.id} style={styles.commentItem}>
                     <TouchableOpacity 
-                        onPress={() => navigation.navigate('Profile', { userId: comment.user.id })} // Điều hướng đến Profile người bình luận
+                        onPress={() => navigation.navigate('TrangCaNhan', { userId: comment.user.id })} // Điều hướng đến Profile người bình luận
                     >
                         <Avatar rounded size="small" source={comment.user?.image ? { uri: getImageUrl(comment.user.image) } : require("../../assets/default-avatar.png")} />
                     </TouchableOpacity>
                     <View style={styles.commentContent}>
                         <TouchableOpacity
-                            onPress={() => navigation.navigate('Profile', { userId: comment.user.id })} // Điều hướng đến Profile người bình luận
+                            onPress={() => navigation.navigate('TrangCaNhan', { userId: comment.user.id })} // Điều hướng đến Profile người bình luận
                         >
                             <Text style={styles.commentUser}>{comment.user?.first_name} {comment.user?.last_name || "Ẩn danh"}</Text>
                         </TouchableOpacity>
