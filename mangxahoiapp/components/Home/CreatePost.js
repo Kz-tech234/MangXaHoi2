@@ -1,60 +1,78 @@
 import React, { useState, useContext } from "react";
-import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, Button, StyleSheet, Alert, Image, TouchableOpacity } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system"; // Chuyển ảnh sang Base64
 import APIs, { endpoints } from "../../configs/APIs";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MyUserContext } from "../../configs/MyUserContext"; 
 
 const CreatePost = ({ navigation }) => {
-  const user = useContext(MyUserContext); // Lấy thông tin user hiện tại
+  const user = useContext(MyUserContext); 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  
-  console.log("User Context:", user); // Debug để kiểm tra giá trị user
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageBase64, setImageBase64] = useState(null);
 
   if (!user || !user.id) {
     Alert.alert("Lỗi", "Bạn chưa đăng nhập!");
     return null;
   }
 
+  // 📌 Chọn ảnh từ thư viện và chuyển sang Base64
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+
+      // Chuyển ảnh sang Base64
+      const base64Image = await FileSystem.readAsStringAsync(result.assets[0].uri, { encoding: FileSystem.EncodingType.Base64 });
+      setImageBase64(base64Image);
+    }
+  };
+
+  // 📌 Gửi bài đăng lên API
   const handleSubmit = async () => {
     if (!title.trim() || !content.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ tiêu đề và nội dung!");
+      Alert.alert("Lỗi", "Vui lòng nhập tiêu đề và nội dung!");
       return;
     }
 
     try {
-      // Lấy token từ AsyncStorage
       const token = await AsyncStorage.getItem("token");
 
-      // Kiểm tra nếu không có token
       if (!token) {
         Alert.alert("Lỗi", "Bạn chưa đăng nhập!");
         return;
       }
 
-      // Gửi request lên API
-      const response = await APIs.post(
-        endpoints["baidangs"],
-        {
-          tieuDe: title,
-          thongTin: content,
-          nguoiDangBai: user.id, // Đảm bảo user.id hợp lệ
+      let postData = {
+        tieuDe: title,
+        thongTin: content,
+        nguoiDangBai: user.id,
+        hinhAnhBase64: imageBase64 || null, // Gửi ảnh dạng Base64 nếu có
+      };
+
+      // 📌 Gửi request lên API
+      const response = await APIs.post("https://chickenphong.pythonanywhere.com/baidangs/", postData, {
+        headers: {
+          Authorization: `Bearer ${token}`, 
+          "Content-Type": "application/json", 
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`, // Truyền token vào header
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      });
 
       Alert.alert("Thành công", "Bài đăng đã được tạo!");
       navigation.goBack();
     } catch (error) {
-      console.error("Lỗi tạo bài đăng:", error);
+      console.error("❌ Lỗi tạo bài đăng:", error);
 
       if (error.response) {
-        console.error("Lỗi từ API:", error.response.data);
+        console.error("❌ Lỗi từ API:", error.response.data);
         Alert.alert("Lỗi", error.response.data.message || "Không thể tạo bài đăng!");
       } else {
         Alert.alert("Lỗi", "Lỗi không xác định, vui lòng thử lại!");
@@ -81,6 +99,16 @@ const CreatePost = ({ navigation }) => {
         multiline
       />
 
+      {/* 📌 Nút chọn ảnh */}
+      <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
+        <Text style={styles.imagePickerText}>📷 Chọn ảnh</Text>
+      </TouchableOpacity>
+
+      {/* 📌 Hiển thị ảnh đã chọn */}
+      {selectedImage && (
+        <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+      )}
+
       <Button title="Đăng bài" onPress={handleSubmit} />
     </View>
   );
@@ -103,6 +131,23 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 15,
+  },
+  imagePicker: {
+    backgroundColor: "#007bff",
+    padding: 10,
+    borderRadius: 5,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  imagePickerText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  previewImage: {
+    width: "100%",
+    height: 200,
+    resizeMode: "contain",
+    marginBottom: 10,
   },
 });
 

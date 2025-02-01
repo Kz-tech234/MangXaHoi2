@@ -65,19 +65,7 @@ const Home = () => {
     setRefreshing(false); // Kết thúc trạng thái làm mới
   };
 
-  const getTagByVaiTro = (vaiTro) => {
-    if (vaiTro === 1) return "Quản trị viên";
-    if (vaiTro === 2) return "Cho thuê phòng";
-    if (vaiTro === 3) return "Tìm phòng";
-    return "";
-  };
-
-  const getTagStyle = (vaiTro) => {
-    if (vaiTro === 1) return styles.adminTag;
-    if (vaiTro === 2) return styles.rentTag;
-    if (vaiTro === 3) return styles.findRoomTag;
-    return {};
-  };
+  
 
   return (
     <ScrollView
@@ -127,9 +115,6 @@ const Home = () => {
                 <Title>
                   {users[b.nguoiDangBai]?.last_name} {users[b.nguoiDangBai]?.first_name}
                 </Title>
-                <Text style={getTagStyle(users[b.nguoiDangBai]?.vaiTro)}>
-                  {getTagByVaiTro(users[b.nguoiDangBai]?.vaiTro)}
-                </Text>
               </View>
               <Subheading style={styles.subtitle}>{b.tieuDe}</Subheading>
               <Text style={styles.date}>
@@ -178,27 +163,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     width: "100%",
-  },
-  findRoomTag: {
-    backgroundColor: "#0288d1",
-    color: "white",
-    padding: 5,
-    borderRadius: 5,
-    fontSize: 12,
-  },
-  rentTag: {
-    backgroundColor: "#d32f2f",
-    color: "white",
-    padding: 5,
-    borderRadius: 5,
-    fontSize: 12,
-  },
-  adminTag: {
-    backgroundColor: "#0288d1",
-    color: "white",
-    padding: 5,
-    borderRadius: 5,
-    fontSize: 12,
   },
 });
 

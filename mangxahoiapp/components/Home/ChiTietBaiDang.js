@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, RefreshControl } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, RefreshControl, Alert } from "react-native";
 import { Avatar, Icon } from "react-native-elements";
 import { MyUserContext } from "../../configs/MyUserContext";
 
 const reactions = {
-    like: "👍", 
-    love: "❤️", 
-    haha: "😆", 
-    wow: "😮", 
-    sad: "😢", 
+    like: "👍",
+    love: "❤️",
+    haha: "😆",
+    wow: "😮",
+    sad: "😢",
     angry: "😡"
 };
 
@@ -20,6 +20,8 @@ const ChiTietBaiDang = ({ route, navigation }) => {
     const [showCommentInput, setShowCommentInput] = useState(false);
     const [newComment, setNewComment] = useState("");
     const [selectedReaction, setSelectedReaction] = useState(null);
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editedComment, setEditedComment] = useState("");
     const [reactionCounts, setReactionCounts] = useState({
         like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0
     });
@@ -39,23 +41,23 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             .then(userData => setPostOwner(userData))
             .catch(error => console.error("Lỗi khi lấy thông tin người đăng bài:", error));
 
-       
+
         // Lấy bình luận
         fetch(`https://chickenphong.pythonanywhere.com/binhluans/?baiDang=${baiDang.id}`)
-        .then(response => response.json())
-        .then(data => {
-            // Lọc chỉ những bình luận có baiDang trùng với id của bài đăng
-            const filteredComments = data.filter(comment => comment.baiDang === baiDang.id);
-            
-            // Lấy thông tin người dùng cho mỗi bình luận
-            return Promise.all(filteredComments.map(comment =>
-                fetch(`https://chickenphong.pythonanywhere.com/users/${comment.nguoiBinhLuan}`)
-                    .then(response => response.json())
-                    .then(userData => ({ ...comment, user: userData }))
-            ));
-        })
-        .then(commentsWithUserData => setComments(commentsWithUserData))
-        .catch(error => console.error("Lỗi khi lấy thông tin người dùng:", error));
+            .then(response => response.json())
+            .then(data => {
+                // Lọc chỉ những bình luận có baiDang trùng với id của bài đăng
+                const filteredComments = data.filter(comment => comment.baiDang === baiDang.id);
+
+                // Lấy thông tin người dùng cho mỗi bình luận
+                return Promise.all(filteredComments.map(comment =>
+                    fetch(`https://chickenphong.pythonanywhere.com/users/${comment.nguoiBinhLuan}`)
+                        .then(response => response.json())
+                        .then(userData => ({ ...comment, user: userData }))
+                ));
+            })
+            .then(commentsWithUserData => setComments(commentsWithUserData))
+            .catch(error => console.error("Lỗi khi lấy thông tin người dùng:", error));
 
 
         // Lấy các tương tác hiện tại
@@ -75,6 +77,164 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             .catch(error => console.error("Lỗi khi lấy dữ liệu tương tác:", error))
             .finally(() => setRefreshing(false));
     };
+
+    const handleCommentLongPress = async (comment) => {
+        if (!userLogin) return;
+    
+        try {
+            console.log("🛠 Kiểm tra quyền trên bình luận ID:", comment.id);
+    
+            // Lấy thông tin bài đăng
+            const postResponse = await fetch(`https://chickenphong.pythonanywhere.com/baidangs/${comment.baiDang}/`);
+            if (!postResponse.ok) {
+                console.error("❌ Lỗi khi lấy thông tin bài đăng:", postResponse.status);
+                return;
+            }
+    
+            const postData = await postResponse.json();
+            console.log("👑 Chủ bài đăng ID:", postData.nguoiDangBai);
+    
+            // Kiểm tra quyền
+            const isPostOwner = userLogin.id === postData.nguoiDangBai; // Chủ bài đăng
+            const isCommentOwner = userLogin.id === comment.nguoiBinhLuan; // Chủ bình luận
+    
+            console.log("✅ Chủ bài đăng:", isPostOwner, "| ✅ Chủ bình luận:", isCommentOwner);
+    
+            let options = [];
+    
+            if (isCommentOwner) {
+                options.push({ text: "Sửa", onPress: () => startEditingComment(comment) });
+            }
+    
+            if (isPostOwner || isCommentOwner) {
+                options.push({ text: "Xóa", onPress: () => deleteComment(comment) });
+            }
+    
+            options.push({ text: "Hủy", style: "cancel" });
+    
+            if (options.length > 1) {
+                Alert.alert("Tuỳ chọn", "Bạn muốn làm gì với bình luận này?", options);
+            } else {
+                console.log("🚫 Người dùng không có quyền sửa hoặc xóa bình luận này.");
+            }
+        } catch (error) {
+            console.error("Lỗi khi lấy thông tin bài đăng:", error);
+        }
+    };
+    
+    
+    const deleteComment = async (comment) => {
+        if (!userLogin) {
+            Alert.alert("Lỗi", "Bạn cần đăng nhập để thực hiện thao tác này.");
+            return;
+        }
+    
+        try {
+            console.log("🔍 Đang kiểm tra quyền xóa bình luận ID:", comment.id);
+            console.log("👤 Người dùng hiện tại ID:", userLogin.id);
+            console.log("📌 Bài đăng ID:", comment.baiDang);
+    
+            // Lấy thông tin bài đăng để kiểm tra chủ bài đăng
+            const postResponse = await fetch(`https://chickenphong.pythonanywhere.com/baidangs/${comment.baiDang}/`);
+            if (!postResponse.ok) {
+                console.error("❌ Lỗi khi lấy thông tin bài đăng:", postResponse.status);
+                Alert.alert("Lỗi", "Không thể lấy thông tin bài đăng.");
+                return;
+            }
+    
+            const postData = await postResponse.json();
+            console.log("👑 Chủ bài đăng ID:", postData.nguoiDangBai);
+    
+            // Kiểm tra quyền
+            const isPostOwner = userLogin.id === postData.nguoiDangBai; // Chủ bài đăng
+            const isCommentOwner = userLogin.id === comment.nguoiBinhLuan; // Chủ bình luận
+    
+            console.log("✅ Chủ bài đăng:", isPostOwner, "| ✅ Chủ bình luận:", isCommentOwner);
+    
+            if (!isPostOwner && !isCommentOwner) {
+                Alert.alert("Lỗi", "Bạn không có quyền xóa bình luận này.");
+                return;
+            }
+    
+            // Gửi yêu cầu xóa bình luận
+            const response = await fetch(`https://chickenphong.pythonanywhere.com/binhluans/${comment.id}/`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${userLogin.token}`, // Đảm bảo gửi token
+                }
+            });
+    
+            console.log("🔄 Response status khi xóa bình luận:", response.status);
+    
+            if (response.ok) {
+                setComments(prevComments => prevComments.filter(c => c.id !== comment.id));
+                console.log(`✅ Bình luận ${comment.id} đã bị xóa thành công.`);
+            } else {
+                const errorText = await response.text();
+                console.error("❌ Lỗi khi xóa bình luận:", errorText);
+                Alert.alert("Lỗi", errorText);
+            }
+        } catch (error) {
+            console.error("❌ Lỗi khi xóa bình luận:", error);
+            Alert.alert("Lỗi", "Không thể kết nối đến server.");
+        }
+    };
+    
+    
+
+    const updateComment = async () => {
+        if (!editedComment.trim()) {
+            Alert.alert("Lỗi", "Bình luận không được để trống.");
+            return;
+        }
+    
+        try {
+            console.log("✍️ Đang cập nhật bình luận ID:", editingCommentId);
+            console.log("📝 Nội dung mới:", editedComment);
+    
+            const response = await fetch(`https://chickenphong.pythonanywhere.com/binhluans/${editingCommentId}/`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${userLogin.token}` // Nếu API yêu cầu token
+                },
+                body: JSON.stringify({
+                    noiDung: editedComment,
+                    baiDang: baiDang.id, // Thêm trường này để tránh lỗi API
+                    nguoiBinhLuan: userLogin.id // Chỉ cho phép sửa bình luận của mình
+                }),
+            });
+    
+            console.log("🔄 Response status khi cập nhật bình luận:", response.status);
+    
+            if (response.ok) {
+                const updatedComment = await response.json();
+                setComments(prevComments =>
+                    prevComments.map(comment =>
+                        comment.id === editingCommentId ? { ...comment, noiDung: updatedComment.noiDung } : comment
+                    )
+                );
+                setEditingCommentId(null);
+                setEditedComment("");
+                console.log("✅ Bình luận đã được cập nhật.");
+            } else {
+                const errorText = await response.text();
+                console.error("❌ Lỗi khi cập nhật bình luận:", errorText);
+                Alert.alert("Lỗi", "Không thể cập nhật bình luận. Vui lòng thử lại!");
+            }
+        } catch (error) {
+            console.error("❌ Lỗi khi cập nhật bình luận:", error);
+            Alert.alert("Lỗi", "Không thể kết nối đến server.");
+        }
+    };
+    
+    
+
+    const startEditingComment = (comment) => {
+        setEditingCommentId(comment.id);
+        setEditedComment(comment.noiDung);
+    };
+
 
     const handleReactionSelect = (reaction) => {
         if (selectedReaction === reaction) {
@@ -97,8 +257,8 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                     loai: reaction
                 }),
             })
-            .then(response => response.json())
-            .catch(error => console.error("Lỗi khi gửi dữ liệu tương tác:", error));
+                .then(response => response.json())
+                .catch(error => console.error("Lỗi khi gửi dữ liệu tương tác:", error));
         }
     };
 
@@ -114,16 +274,16 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 nguoiBinhLuan: userLogin?.id || "Ẩn danh",
             }),
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data && data.id) {
-                setComments(prevComments => [data, ...prevComments]);
-                setNewComment("");
-            } else {
-                console.error("API không trả về dữ liệu hợp lệ:", data);
-            }
-        })
-        .catch(error => console.error("Lỗi khi gửi bình luận:", error));
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.id) {
+                    setComments(prevComments => [data, ...prevComments]);
+                    setNewComment("");
+                } else {
+                    console.error("API không trả về dữ liệu hợp lệ:", data);
+                }
+            })
+            .catch(error => console.error("Lỗi khi gửi bình luận:", error));
     };
 
     const getImageUrl = (imagePath) => {
@@ -131,7 +291,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
     };
 
     return (
-        <ScrollView 
+        <ScrollView
             style={styles.container}
             refreshControl={
                 <RefreshControl refreshing={refreshing} onRefresh={loadPostData} />
@@ -139,14 +299,14 @@ const ChiTietBaiDang = ({ route, navigation }) => {
         >
             <View style={styles.postHeader}>
                 {postOwner && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         onPress={() => navigation.navigate('TrangCaNhan', { userId: baiDang.nguoiDangBai })} // Điều hướng đến Profile người đăng bài
                     >
-                        <Avatar 
-                            rounded 
-                            size="medium" 
-                            source={getImageUrl(postOwner.image) ? { uri: getImageUrl(postOwner.image) } : require("../../assets/default-avatar.png")} 
-                            containerStyle={styles.avatar} 
+                        <Avatar
+                            rounded
+                            size="medium"
+                            source={getImageUrl(postOwner.image) ? { uri: getImageUrl(postOwner.image) } : require("../../assets/default-avatar.png")}
+                            containerStyle={styles.avatar}
                         />
                     </TouchableOpacity>
                 )}
@@ -165,8 +325,8 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             {baiDang.image && <Image source={{ uri: baiDang.image }} style={styles.postImage} />}
 
             <View style={styles.postFooter}>
-                <TouchableOpacity 
-                    style={styles.footerButton} 
+                <TouchableOpacity
+                    style={styles.footerButton}
                     onPress={() => handleReactionSelect("like")}
                 >
                     <Text style={styles.reactionText}>
@@ -180,10 +340,6 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                     <Text style={styles.footerText}>Bình luận</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.footerButton}>
-                    <Icon name="share" type="material" color="#666" />
-                    <Text style={styles.footerText}>Chia sẻ</Text>
-                </TouchableOpacity>
             </View>
 
             <View style={styles.reactionCountContainer}>
@@ -209,26 +365,48 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 </View>
             )}
 
-                <Text style={styles.commentListTitle}>Bình luận ({comments.length})</Text>
-                {comments
-                    .filter(comment => comment.baiDang === baiDang.id) // Đảm bảo chỉ hiển thị bình luận của bài đăng đó
-                    .map(comment => (
+            <Text style={styles.commentListTitle}>Bình luận ({comments.length})</Text>
+            {comments
+                .filter(comment => comment.baiDang === baiDang.id) // Đảm bảo chỉ hiển thị bình luận của bài đăng đó
+                .map(comment => {
+                    const isCommentOwner = userLogin?.id === comment.nguoiBinhLuan;
+                    return (
                         <View key={comment.id} style={styles.commentItem}>
-                            <TouchableOpacity 
-                                onPress={() => navigation.navigate('TrangCaNhan', { userId: comment.user.id })}
-                            >
-                                <Avatar rounded size="small" source={comment.user?.image ? { uri: getImageUrl(comment.user.image) } : require("../../assets/default-avatar.png")} />
+                            <TouchableOpacity onPress={() => navigation.navigate('TrangCaNhan', { userId: comment.user.id })}>
+                                <Avatar
+                                    rounded
+                                    size="small"
+                                    source={comment.user?.image ? { uri: getImageUrl(comment.user.image) } : require("../../assets/default-avatar.png")}
+                                />
                             </TouchableOpacity>
                             <View style={styles.commentContent}>
                                 <TouchableOpacity
-                                    onPress={() => navigation.navigate('TrangCaNhan', { userId: comment.user.id })}
+                                    onLongPress={() => {
+                                        if (isCommentOwner) {
+                                            handleCommentLongPress(comment);
+                                        }
+                                    }}
                                 >
-                                    <Text style={styles.commentUser}>{comment.user?.first_name} {comment.user?.last_name || "Ẩn danh"}</Text>
+                                    <Text style={styles.commentUser}>
+                                        {comment.user?.first_name} {comment.user?.last_name || "Ẩn danh"}
+                                    </Text>
+                                    {editingCommentId === comment.id ? (
+                                        <TextInput
+                                            style={styles.commentInput}
+                                            value={editedComment}
+                                            onChangeText={setEditedComment}
+                                            onSubmitEditing={updateComment}  // Bấm Enter để cập nhật
+                                            onBlur={updateComment}  // Khi mất focus cũng cập nhật
+                                            autoFocus
+                                        />
+                                    ) : (
+                                        <Text>{comment.noiDung}</Text>
+                                    )}
                                 </TouchableOpacity>
-                                <Text>{comment.noiDung}</Text>
                             </View>
                         </View>
-                    ))}
+                    );
+                })}
         </ScrollView>
     );
 };
