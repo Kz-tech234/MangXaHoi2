@@ -162,13 +162,14 @@ const styles = StyleSheet.create({
   profileHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: -40,
+    marginTop: 0,
     paddingHorizontal: 15,
   },
   profileImage: {
+    marginTop: -20,
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 50,
     borderWidth: 3,
     borderColor: "#fff",
     backgroundColor: "#ccc",
