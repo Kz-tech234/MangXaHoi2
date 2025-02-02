@@ -36,7 +36,7 @@ const Login = () => {
         try {
             let res = await APIs.post(endpoints['login'], {
                 ...user,
-                client_id: 'Bww8cW4mr7X0tGV45Hkdkawc9RAsX90sfPwFL9Kj',
+                client_id: 'tCUEgQiHCHiomVCESmsGrFMSphl0Rjupb5Nsczle',
                 client_secret: '123456',
                 grant_type: 'password',
             }, {
