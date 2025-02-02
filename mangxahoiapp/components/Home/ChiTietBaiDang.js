@@ -25,6 +25,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
     const [reactionCounts, setReactionCounts] = useState({
         like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0
     });
+    const [isCommentsLocked, setIsCommentsLocked] = useState(baiDang.khoa_binh_luan);
     const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
@@ -34,23 +35,23 @@ const ChiTietBaiDang = ({ route, navigation }) => {
 
     const loadPostData = () => {
         setRefreshing(true);
-    
+
         // Lấy thông tin người đăng bài
         fetch(`https://chickenphong.pythonanywhere.com/users/${baiDang.nguoiDangBai}`)
             .then(response => response.json())
             .then(userData => setPostOwner(userData))
             .catch(error => console.error("Lỗi khi lấy thông tin người đăng bài:", error));
-    
+
         // Lấy bình luận
         fetch(`https://chickenphong.pythonanywhere.com/binhluans/?baiDang=${baiDang.id}`)
             .then(response => response.json())
             .then(data => {
                 // Lọc chỉ những bình luận có baiDang trùng với id của bài đăng
                 const filteredComments = data.filter(comment => comment.baiDang === baiDang.id);
-    
+
                 // Sắp xếp bình luận theo thời gian giảm dần (comment mới nhất nằm trên cùng)
                 filteredComments.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
-    
+
                 // Lấy thông tin người dùng cho mỗi bình luận
                 return Promise.all(filteredComments.map(comment =>
                     fetch(`https://chickenphong.pythonanywhere.com/users/${comment.nguoiBinhLuan}`)
@@ -61,43 +62,78 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             .then(commentsWithUserData => setComments(commentsWithUserData))
             .catch(error => console.error("Lỗi khi lấy thông tin người dùng:", error))
             .finally(() => setRefreshing(false));
+
+        fetch(`https://chickenphong.pythonanywhere.com/baidangs/${baiDang.id}/`)
+            .then(response => response.json())
+            .then(data => setIsCommentsLocked(data.khoa_binh_luan))
+            .catch(error => console.error("Lỗi khi lấy dữ liệu bài đăng:", error));
     };
-    
+
+    const toggleLockComments = async () => {
+        try {
+            const newLockState = !isCommentsLocked;
+
+            const response = await fetch(
+                `https://chickenphong.pythonanywhere.com/baidangs/${baiDang.id}/khoa-binh-luan/`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${userLogin.token}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ khoa_binh_luan: newLockState }) 
+                }
+            );
+
+            const responseData = await response.json();
+
+            if (response.ok) {
+                setIsCommentsLocked(newLockState);
+                Alert.alert("Thành công", newLockState ? "Bình luận đã bị khóa" : "Bình luận đã được mở khóa");
+            } else {
+                console.error("API lỗi:", responseData);
+                Alert.alert("Lỗi", responseData.error || "Không thể cập nhật trạng thái bình luận.");
+            }
+        } catch (error) {
+            console.error("Lỗi khi gửi request:", error);
+            Alert.alert("Lỗi", "Không thể kết nối đến server.");
+        }
+    };
 
     const handleCommentLongPress = async (comment) => {
         if (!userLogin) return;
-    
+
         try {
             console.log("🛠 Kiểm tra quyền trên bình luận ID:", comment.id);
-    
+
             // Lấy thông tin bài đăng
             const postResponse = await fetch(`https://chickenphong.pythonanywhere.com/baidangs/${comment.baiDang}/`);
             if (!postResponse.ok) {
                 console.error("❌ Lỗi khi lấy thông tin bài đăng:", postResponse.status);
                 return;
             }
-    
+
             const postData = await postResponse.json();
             console.log("👑 Chủ bài đăng ID:", postData.nguoiDangBai);
-    
+
             // Kiểm tra quyền
             const isPostOwner = userLogin.id === postData.nguoiDangBai; // Chủ bài đăng
             const isCommentOwner = userLogin.id === comment.nguoiBinhLuan; // Chủ bình luận
-    
+
             console.log("✅ Chủ bài đăng:", isPostOwner, "| ✅ Chủ bình luận:", isCommentOwner);
-    
+
             let options = [];
-    
+
             if (isCommentOwner) {
                 options.push({ text: "Sửa", onPress: () => startEditingComment(comment) });
             }
-    
+
             if (isPostOwner || isCommentOwner) {
                 options.push({ text: "Xóa", onPress: () => deleteComment(comment) });
             }
-    
+
             options.push({ text: "Hủy", style: "cancel" });
-    
+
             if (options.length > 1) {
                 Alert.alert("Tuỳ chọn", "Bạn muốn làm gì với bình luận này?", options);
             } else {
@@ -107,19 +143,19 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             console.error("Lỗi khi lấy thông tin bài đăng:", error);
         }
     };
-    
-    
+
+
     const deleteComment = async (comment) => {
         if (!userLogin) {
             Alert.alert("Lỗi", "Bạn cần đăng nhập để thực hiện thao tác này.");
             return;
         }
-    
+
         try {
             console.log("🔍 Đang kiểm tra quyền xóa bình luận ID:", comment.id);
             console.log("👤 Người dùng hiện tại ID:", userLogin.id);
             console.log("📌 Bài đăng ID:", comment.baiDang);
-    
+
             // Lấy thông tin bài đăng để kiểm tra chủ bài đăng
             const postResponse = await fetch(`https://chickenphong.pythonanywhere.com/baidangs/${comment.baiDang}/`);
             if (!postResponse.ok) {
@@ -127,21 +163,21 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 Alert.alert("Lỗi", "Không thể lấy thông tin bài đăng.");
                 return;
             }
-    
+
             const postData = await postResponse.json();
             console.log("👑 Chủ bài đăng ID:", postData.nguoiDangBai);
-    
+
             // Kiểm tra quyền
             const isPostOwner = userLogin.id === postData.nguoiDangBai; // Chủ bài đăng
             const isCommentOwner = userLogin.id === comment.nguoiBinhLuan; // Chủ bình luận
-    
+
             console.log("✅ Chủ bài đăng:", isPostOwner, "| ✅ Chủ bình luận:", isCommentOwner);
-    
+
             if (!isPostOwner && !isCommentOwner) {
                 Alert.alert("Lỗi", "Bạn không có quyền xóa bình luận này.");
                 return;
             }
-    
+
             // Gửi yêu cầu xóa bình luận
             const response = await fetch(`https://chickenphong.pythonanywhere.com/binhluans/${comment.id}/`, {
                 method: "DELETE",
@@ -149,9 +185,9 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                     "Authorization": `Bearer ${userLogin.token}`, // Đảm bảo gửi token
                 }
             });
-    
+
             console.log("🔄 Response status khi xóa bình luận:", response.status);
-    
+
             if (response.ok) {
                 setComments(prevComments => prevComments.filter(c => c.id !== comment.id));
                 console.log(`✅ Bình luận ${comment.id} đã bị xóa thành công.`);
@@ -165,19 +201,19 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             Alert.alert("Lỗi", "Không thể kết nối đến server.");
         }
     };
-    
-    
+
+
 
     const updateComment = async () => {
         if (!editedComment.trim()) {
             Alert.alert("Lỗi", "Bình luận không được để trống.");
             return;
         }
-    
+
         try {
             console.log("✍️ Đang cập nhật bình luận ID:", editingCommentId);
             console.log("📝 Nội dung mới:", editedComment);
-    
+
             const response = await fetch(`https://chickenphong.pythonanywhere.com/binhluans/${editingCommentId}/`, {
                 method: "PUT",
                 headers: {
@@ -190,9 +226,9 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                     nguoiBinhLuan: userLogin.id // Chỉ cho phép sửa bình luận của mình
                 }),
             });
-    
+
             console.log("🔄 Response status khi cập nhật bình luận:", response.status);
-    
+
             if (response.ok) {
                 const updatedComment = await response.json();
                 setComments(prevComments =>
@@ -213,8 +249,8 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             Alert.alert("Lỗi", "Không thể kết nối đến server.");
         }
     };
-    
-    
+
+
 
     const startEditingComment = (comment) => {
         setEditingCommentId(comment.id);
@@ -304,6 +340,11 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                     </TouchableOpacity>
                     <Text style={styles.date}>{new Date(baiDang.created_date).toLocaleString()}</Text>
                 </View>
+                {userLogin?.id === baiDang.nguoiDangBai && (
+                    <TouchableOpacity style={styles.lockButton} onPress={toggleLockComments}>
+                        <Icon name={isCommentsLocked ? "lock" : "lock-open"} type="material" color="#fff" size={20} />
+                    </TouchableOpacity>
+                )}
             </View>
 
             <Text style={styles.content}>{baiDang.thongTin}</Text>
@@ -336,7 +377,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 ))}
             </View>
 
-            {showCommentInput && (
+            {showCommentInput && !isCommentsLocked ? (
                 <View style={styles.commentInputContainer}>
                     <TextInput
                         style={styles.commentInput}
@@ -349,6 +390,8 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                         <Icon name="send" type="material" color={newComment.trim() ? "#007bff" : "#ccc"} />
                     </TouchableOpacity>
                 </View>
+            ) : (
+                <Text style={styles.lockedText}>🔒 Bình luận đã bị khóa</Text>
             )}
 
             <Text style={styles.commentListTitle}>Bình luận ({comments.length})</Text>
@@ -419,6 +462,20 @@ const styles = StyleSheet.create({
     commentContent: { marginLeft: 10, backgroundColor: "#f0f0f0", padding: 10, borderRadius: 10 },
     commentUser: { fontSize: 14, fontWeight: "bold", marginBottom: 3 },
     commentTime: { fontSize: 12, color: "#888", marginBottom: 5 },
+    lockButton: { 
+        position: "absolute", 
+        right: 10, 
+        top: 10, 
+        backgroundColor: "#007bff", 
+        padding: 8, 
+        borderRadius: 5 
+    },
+    lockedText: { 
+        color: "#FF0000", 
+        textAlign: "center", 
+        fontWeight: "bold", 
+        marginTop: 10 
+    },
 });
 
 export default ChiTietBaiDang;
