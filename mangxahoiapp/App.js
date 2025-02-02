@@ -3,6 +3,7 @@ import { NavigationContainer, StackActions } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { LogBox } from "react-native";
 
 // Import các component màn hình
 import Home from './components/Home/Home';
@@ -53,6 +54,10 @@ export { app, auth, database, analytics };
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+
+LogBox.ignoreLogs([
+  "TextElement: Support for defaultProps will be removed", // Tắt cảnh báo liên quan đến TextElement
+]);
 
 const HomeStackNavigator = () => {
   return (
