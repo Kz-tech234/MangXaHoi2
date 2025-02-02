@@ -17,18 +17,20 @@ const Home = () => {
   const loadBaidangs = async () => {
     try {
       const res = await APIs.get(endpoints["baidangs"]);
-      const reversedData = res.data.reverse();
+
+      // ✅ Sắp xếp theo thời gian gần nhất trước
+      const sortedData = res.data.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
 
       const usersData = {};
-      for (const baiDang of reversedData) {
+      for (const baiDang of sortedData) {
         if (!usersData[baiDang.nguoiDangBai]) {
           const userRes = await APIs.get(`/users/${baiDang.nguoiDangBai}`);
           usersData[baiDang.nguoiDangBai] = userRes.data;
         }
       }
 
-      setBaidangs(reversedData);
-      setFilteredBaidangs(reversedData);
+      setBaidangs(sortedData);
+      setFilteredBaidangs(sortedData);
       setUsers(usersData);
     } catch (error) {
       console.error("Error loading posts:", error);
@@ -65,8 +67,6 @@ const Home = () => {
     setRefreshing(false); // Kết thúc trạng thái làm mới
   };
 
-  
-
   return (
     <ScrollView
       style={styles.container}
@@ -93,7 +93,7 @@ const Home = () => {
       </View>
 
       {filteredBaidangs.length === 0 ? (
-        <Text>Không có bài đăng với loại này.</Text>
+        <Text>Không có bài đăng nào.</Text>
       ) : (
         filteredBaidangs.map((b) => (
           <ListItem
