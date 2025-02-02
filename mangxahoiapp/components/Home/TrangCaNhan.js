@@ -134,16 +134,22 @@ const TrangCaNhan = ({ route, navigation }) => {
     <ScrollView style={styles.container}>
       {userData ? (
         <>
-          <View style={styles.profileHeader}>
+          <View style={styles.coverContainer}>
             <Image
-              source={userData.image ? { uri: `${API_URL}${userData.image}` } : null}
-              style={styles.profileImage}
+              source={userData.coverImage ? { uri: `https://chickenphong.pythonanywhere.com${user.coverImage}` } : require("../../assets/anh3.jpg")}
+              style={styles.coverImage}
             />
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>
-                {userData.last_name} {userData.first_name}
-              </Text>
-              <Text style={styles.profileUsername}>@{userData.username}</Text>
+            <View style={styles.profileHeader}>
+              <Image
+                source={userData.image ? { uri: `${API_URL}${userData.image}` } : null}
+                style={styles.profileImage}
+              />
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName}>
+                  {userData.last_name} {userData.first_name}
+                </Text>
+                <Text style={styles.profileUsername}>@{userData.username}</Text>
+              </View>
             </View>
           </View>
 
@@ -212,26 +218,28 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     padding: 10,
   },
+  coverContainer: {
+    position: "relative",
+  },
+  coverImage: {
+    width: "100%",
+    height: 180,
+    resizeMode: "cover",
+  },
   profileHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
-    backgroundColor: "#f0f0f0",
-    padding: 15,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
+    marginTop: 0,
+    paddingHorizontal: 15,
   },
   profileImage: {
+    marginTop: -20,
     width: 80,
     height: 80,
-    borderRadius: 40,
-    marginRight: 15,
-    borderWidth: 2,
-    borderColor: "#0288d1",
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: "#fff",
+    backgroundColor: "#ccc",
   },
   profileInfo: {
     flex: 1,

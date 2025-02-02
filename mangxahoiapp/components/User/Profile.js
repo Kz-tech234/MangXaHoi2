@@ -4,6 +4,7 @@ import { MyDispatchContext, MyUserContext } from "../../configs/MyUserContext";
 import MyStyles from "../../styles/MyStyles";
 import { Button, IconButton, Menu, Provider } from "react-native-paper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 
 const Profile = ({ route, navigation }) => {
@@ -11,6 +12,7 @@ const Profile = ({ route, navigation }) => {
   const [userPosts, setUserPosts] = useState([]);
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
+  const [coverImage, setCoverImage] = useState(user?.coverImage || null);
   const dispatch = useContext(MyDispatchContext);
 
   const logout = async () => {
@@ -39,6 +41,14 @@ const Profile = ({ route, navigation }) => {
 
   useEffect(() => {
     if (user) {
+        // Lấy ảnh nền từ API
+      axios.get(`https://chickenphong.pythonanywhere.com/users/${user.id}/`)
+      .then((response) => {
+        setCoverImage(response.data.coverImage); // Cập nhật ảnh nền từ API
+      })
+      .catch((error) => console.error("Lỗi lấy ảnh nền:", error));
+
+
       fetch(`https://chickenphong.pythonanywhere.com/baidangs/`)
         .then((response) => response.json())
         .then((data) => {
@@ -54,37 +64,101 @@ const Profile = ({ route, navigation }) => {
   const showMenu = () => setVisible(true);
   const hideMenu = () => setVisible(false);
 
+  const pickCoverImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setCoverImage(result.assets[0].uri);
+      updateCoverImage(result.assets[0].uri);
+    }
+  };
+
+  const updateCoverImage = async (uri) => {
+    const formData = new FormData();
+    formData.append('coverImage', { uri, name: 'cover.jpg', type: 'image/jpeg' });
+
+    try {
+      await axios.patch(`https://chickenphong.pythonanywhere.com/users/${user.id}/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      Alert.alert("Cập nhật thành công", "Ảnh bìa đã được thay đổi");
+      setCoverImage(uri); // Cập nhật UI
+      user.coverImage = uri; // Cập nhật lại user
+    } catch (error) {
+      console.error("Lỗi cập nhật ảnh bìa:", error);
+      Alert.alert("Lỗi", "Không thể cập nhật ảnh bìa. Hãy thử lại sau.");
+    }
+  };
+
+  const handleCreatePost = async () => {
+    if (!newPostTitle || !newPostContent) {
+      alert("Vui lòng nhập tiêu đề và nội dung bài đăng");
+      return;
+    }
+  
+    const formData = {
+      tieuDe: newPostTitle,
+      thongTin: newPostContent,
+      nguoiDangBai: user.id, // ID người dùng đang đăng bài
+    };
+  
+    try {
+      const response = await axios.post(`https://chickenphong.pythonanywhere.com/baidangs/`, formData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      if (response.status === 201) {
+        alert("Bài đăng đã được tạo thành công!");
+        setNewPostTitle("");
+        setNewPostContent("");
+        setUserPosts([response.data, ...userPosts]); // Cập nhật danh sách bài viết
+      } else {
+        alert("Không thể đăng bài, vui lòng thử lại.");
+      }
+    } catch (error) {
+      console.error("Lỗi khi đăng bài:", error);
+      alert("Có lỗi xảy ra, vui lòng thử lại sau!");
+    }
+  };
+
   return (
     <Provider>
       <ScrollView style={styles.container}>
         {user ? (
           <>
-            <View style={styles.coverContainer}>
+            <TouchableOpacity onPress={pickCoverImage} style={styles.coverContainer}>
               <Image
-                source={user.coverImage ? { uri: `https://chickenphong.pythonanywhere.com${user.coverImage}` } : require("../../assets/anh3.jpg")}
+                source={coverImage ? { uri: coverImage } : require("../../assets/anh3.jpg")}
                 style={styles.coverImage}
               />
-              <View style={styles.profileHeader}>
-                <Image
-                  source={user.image ? { uri: `https://chickenphong.pythonanywhere.com${user.image}` } : require("../../assets/default-avatar.png")}
-                  style={styles.profileImage}
-                />
-                <View style={styles.profileInfo}>
-                  <Text style={styles.profileName}>{user.last_name} {user.first_name}</Text>
-                  <Text style={styles.profileUsername}>@{user.username}</Text>
-                </View>
-                <Menu
-                  visible={visible}
-                  onDismiss={hideMenu}
-                  anchor={<IconButton icon="dots-vertical" size={24} onPress={showMenu} />}
-                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                >
-                  <Menu.Item onPress={logout} title="Đăng xuất" />
-                </Menu>
+            </TouchableOpacity>
+            <View style={styles.profileHeader}>
+              <Image
+                source={user.image ? { uri: `https://chickenphong.pythonanywhere.com${user.image}` } : require("../../assets/default-avatar.png")}
+                style={styles.profileImage}
+              />
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName}>{user.last_name} {user.first_name}</Text>
+                <Text style={styles.profileUsername}>@{user.username}</Text>
               </View>
+              <Menu
+                visible={visible}
+                onDismiss={hideMenu}
+                anchor={<IconButton icon="dots-vertical" size={24} onPress={showMenu} />}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              >
+                <Menu.Item onPress={logout} title="Đăng xuất" />
+              </Menu>
             </View>
-
+  
             <View style={styles.contactInfo}>
               <Text style={styles.contactTitle}>Thông tin liên hệ</Text>
               <Text style={styles.contactText}>Số điện thoại: {user.SDT}</Text>
@@ -108,7 +182,7 @@ const Profile = ({ route, navigation }) => {
                   onChangeText={setNewPostContent}
                   multiline
                 />
-                <Button mode="contained" onPress={() => {}}>Đăng bài</Button>
+                <Button mode="contained" onPress={handleCreatePost}>Đăng bài</Button>
               </View>
             )}
 
