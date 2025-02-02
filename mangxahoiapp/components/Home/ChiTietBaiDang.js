@@ -34,21 +34,23 @@ const ChiTietBaiDang = ({ route, navigation }) => {
 
     const loadPostData = () => {
         setRefreshing(true);
-
+    
         // Lấy thông tin người đăng bài
         fetch(`https://chickenphong.pythonanywhere.com/users/${baiDang.nguoiDangBai}`)
             .then(response => response.json())
             .then(userData => setPostOwner(userData))
             .catch(error => console.error("Lỗi khi lấy thông tin người đăng bài:", error));
-
-
+    
         // Lấy bình luận
         fetch(`https://chickenphong.pythonanywhere.com/binhluans/?baiDang=${baiDang.id}`)
             .then(response => response.json())
             .then(data => {
                 // Lọc chỉ những bình luận có baiDang trùng với id của bài đăng
                 const filteredComments = data.filter(comment => comment.baiDang === baiDang.id);
-
+    
+                // Sắp xếp bình luận theo thời gian giảm dần (comment mới nhất nằm trên cùng)
+                filteredComments.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+    
                 // Lấy thông tin người dùng cho mỗi bình luận
                 return Promise.all(filteredComments.map(comment =>
                     fetch(`https://chickenphong.pythonanywhere.com/users/${comment.nguoiBinhLuan}`)
@@ -57,26 +59,10 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 ));
             })
             .then(commentsWithUserData => setComments(commentsWithUserData))
-            .catch(error => console.error("Lỗi khi lấy thông tin người dùng:", error));
-
-
-        // Lấy các tương tác hiện tại
-        fetch(`https://chickenphong.pythonanywhere.com/reactions/?baiDang=${baiDang.id}`)
-            .then(response => response.json())
-            .then(data => {
-                const counts = {
-                    like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0
-                };
-                data.forEach(reaction => {
-                    if (reactionCounts[reaction.loai] !== undefined) {
-                        counts[reaction.loai]++;
-                    }
-                });
-                setReactionCounts(counts);
-            })
-            .catch(error => console.error("Lỗi khi lấy dữ liệu tương tác:", error))
+            .catch(error => console.error("Lỗi khi lấy thông tin người dùng:", error))
             .finally(() => setRefreshing(false));
     };
+    
 
     const handleCommentLongPress = async (comment) => {
         if (!userLogin) return;
@@ -366,47 +352,49 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             )}
 
             <Text style={styles.commentListTitle}>Bình luận ({comments.length})</Text>
-            {comments
-                .filter(comment => comment.baiDang === baiDang.id) // Đảm bảo chỉ hiển thị bình luận của bài đăng đó
-                .map(comment => {
-                    const isCommentOwner = userLogin?.id === comment.nguoiBinhLuan;
-                    return (
-                        <View key={comment.id} style={styles.commentItem}>
-                            <TouchableOpacity onPress={() => navigation.navigate('TrangCaNhan', { userId: comment.user.id })}>
-                                <Avatar
-                                    rounded
-                                    size="small"
-                                    source={comment.user?.image ? { uri: getImageUrl(comment.user.image) } : require("../../assets/default-avatar.png")}
-                                />
+            {comments.map(comment => {
+                const isCommentOwner = userLogin?.id === comment.nguoiBinhLuan;
+                return (
+                    <View key={comment.id} style={styles.commentItem}>
+                        <TouchableOpacity onPress={() => navigation.navigate('TrangCaNhan', { userId: comment.user.id })}>
+                            <Avatar
+                                rounded
+                                size="small"
+                                source={comment.user?.image ? { uri: getImageUrl(comment.user.image) } : require("../../assets/default-avatar.png")}
+                            />
+                        </TouchableOpacity>
+                        <View style={styles.commentContent}>
+                            <TouchableOpacity
+                                onLongPress={() => {
+                                    if (isCommentOwner) {
+                                        handleCommentLongPress(comment);
+                                    }
+                                }}
+                            >
+                                <Text style={styles.commentUser}>
+                                    {comment.user?.first_name} {comment.user?.last_name || "Ẩn danh"}
+                                </Text>
+                                {/* 🔹 Hiển thị thời gian bình luận */}
+                                <Text style={styles.commentTime}>
+                                    {new Date(comment.created_date).toLocaleString("vi-VN")}
+                                </Text>
+                                {editingCommentId === comment.id ? (
+                                    <TextInput
+                                        style={styles.commentInput}
+                                        value={editedComment}
+                                        onChangeText={setEditedComment}
+                                        onSubmitEditing={updateComment}  // Bấm Enter để cập nhật
+                                        onBlur={updateComment}  // Khi mất focus cũng cập nhật
+                                        autoFocus
+                                    />
+                                ) : (
+                                    <Text>{comment.noiDung}</Text>
+                                )}
                             </TouchableOpacity>
-                            <View style={styles.commentContent}>
-                                <TouchableOpacity
-                                    onLongPress={() => {
-                                        if (isCommentOwner) {
-                                            handleCommentLongPress(comment);
-                                        }
-                                    }}
-                                >
-                                    <Text style={styles.commentUser}>
-                                        {comment.user?.first_name} {comment.user?.last_name || "Ẩn danh"}
-                                    </Text>
-                                    {editingCommentId === comment.id ? (
-                                        <TextInput
-                                            style={styles.commentInput}
-                                            value={editedComment}
-                                            onChangeText={setEditedComment}
-                                            onSubmitEditing={updateComment}  // Bấm Enter để cập nhật
-                                            onBlur={updateComment}  // Khi mất focus cũng cập nhật
-                                            autoFocus
-                                        />
-                                    ) : (
-                                        <Text>{comment.noiDung}</Text>
-                                    )}
-                                </TouchableOpacity>
-                            </View>
                         </View>
-                    );
-                })}
+                    </View>
+                );
+            })}
         </ScrollView>
     );
 };
@@ -430,6 +418,7 @@ const styles = StyleSheet.create({
     commentItem: { flexDirection: "row", alignItems: "center", marginVertical: 5 },
     commentContent: { marginLeft: 10, backgroundColor: "#f0f0f0", padding: 10, borderRadius: 10 },
     commentUser: { fontSize: 14, fontWeight: "bold", marginBottom: 3 },
+    commentTime: { fontSize: 12, color: "#888", marginBottom: 5 },
 });
 
 export default ChiTietBaiDang;
