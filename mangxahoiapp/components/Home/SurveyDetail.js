@@ -14,31 +14,48 @@ const SurveyDetail = ({ route, navigation }) => {
 
   useEffect(() => {
     const loadSurveyData = async () => {
-      try {
-        console.log("Fetching survey questions and completion status...");
-
-        // Lấy danh sách câu hỏi
-        const questionRes = await APIs.get(endpoints["cauhois"]);
-        const filteredQuestions = questionRes.data.filter(q => q.khaoSat === survey.id);
-        setQuestions(filteredQuestions);
-        setAnswers(filteredQuestions.reduce((acc, q) => ({ ...acc, [q.id]: null }), {}));
-
-        // Kiểm tra xem người dùng đã hoàn thành khảo sát cụ thể này chưa
-        const response = await APIs.get(`${endpoints["tralois"]}?nguoiTraLoi=${user.id}`);
-        const completedSurveys = new Set(response.data.map(traloi => traloi.khaoSat)); 
-
-        if (completedSurveys.has(survey.id)) {
-          setSurveyCompleted(true);
+        if (!user || !user.id) {
+            console.log("🚨 Không tìm thấy user.id, kiểm tra lại đăng nhập!");
+            return;
         }
-      } catch (error) {
-        console.error("Lỗi khi tải dữ liệu khảo sát:", error);
-      } finally {
-        setLoading(false);
-      }
+
+        try {
+            console.log(`📥 Đang tải dữ liệu khảo sát cho user ID: ${user.id}...`);
+
+            // Lấy danh sách câu hỏi
+            const questionRes = await APIs.get(endpoints["cauhois"]);
+            const filteredQuestions = questionRes.data.filter(q => q.khaoSat === survey.id);
+            setQuestions(filteredQuestions);
+            setAnswers(filteredQuestions.reduce((acc, q) => ({ ...acc, [q.id]: null }), {}));
+
+            // Kiểm tra xem user hiện tại đã làm khảo sát chưa
+            console.log("📥 Đang kiểm tra khảo sát đã hoàn thành của user...");
+            const response = await APIs.get(`${endpoints["tralois"]}?nguoiTraLoi=${user.id}`);
+            
+            // Log dữ liệu phản hồi từ API
+            console.log("📊 API Trả lời khảo sát:", response.data);
+
+            const userSurveys = response.data.filter(traloi => traloi.nguoiTraLoi === user.id && traloi.khaoSat === survey.id);
+
+            if (userSurveys.length > 0) {
+                console.log("✅ User đã hoàn thành khảo sát này trước đó.");
+                setSurveyCompleted(true);
+            } else {
+                console.log("🆕 User chưa hoàn thành khảo sát, có thể làm.");
+                setSurveyCompleted(false);
+            }
+
+        } catch (error) {
+            console.error("❌ Lỗi khi tải dữ liệu khảo sát:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     loadSurveyData();
-  }, [survey.id, user]);
+  }, [survey.id, user]); // Khi user thay đổi, dữ liệu sẽ được cập nhật lại
+
+
 
   const handleAnswerChange = (questionId, value) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
@@ -77,8 +94,15 @@ const SurveyDetail = ({ route, navigation }) => {
         await APIs.post(endpoints["tralois"], payload);
       }
 
-      Alert.alert("Thành công", "Bạn đã hoàn thành khảo sát!");
       setSurveyCompleted(true); // Cập nhật trạng thái đã hoàn thành
+
+      // Hiển thị thông báo và quay lại màn hình danh sách khảo sát
+      Alert.alert("Thành công", "Bạn đã hoàn thành khảo sát!", [
+          {
+              text: "OK",
+              onPress: () => navigation.navigate("Surveys") // Quay lại danh sách khảo sát
+          }
+      ]);
     } catch (error) {
       console.error("Lỗi khi gửi khảo sát:", error.response?.data || error.message);
       Alert.alert("Lỗi", "Không thể gửi khảo sát.");
