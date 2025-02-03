@@ -377,7 +377,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 ))}
             </View>
 
-            {showCommentInput && !isCommentsLocked ? (
+            {!isCommentsLocked ? (
                 <View style={styles.commentInputContainer}>
                     <TextInput
                         style={styles.commentInput}
