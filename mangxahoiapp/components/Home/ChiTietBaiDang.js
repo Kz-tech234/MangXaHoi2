@@ -7,9 +7,6 @@ const reactions = {
     like: "👍",
     love: "❤️",
     haha: "😆",
-    wow: "😮",
-    sad: "😢",
-    angry: "😡"
 };
 
 const ChiTietBaiDang = ({ route, navigation }) => {
@@ -23,7 +20,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
     const [editingCommentId, setEditingCommentId] = useState(null);
     const [editedComment, setEditedComment] = useState("");
     const [reactionCounts, setReactionCounts] = useState({
-        like: 0, love: 0, haha: 0, wow: 0, sad: 0, angry: 0
+        like: 0, love: 0, haha: 0
     });
     const [isCommentsLocked, setIsCommentsLocked] = useState(baiDang.khoa_binh_luan);
     const [refreshing, setRefreshing] = useState(false);
@@ -72,7 +69,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
     const toggleLockComments = async () => {
         try {
             const newLockState = !isCommentsLocked;
-
+    
             const response = await fetch(
                 `https://chickenphong.pythonanywhere.com/baidangs/${baiDang.id}/khoa-binh-luan/`,
                 {
@@ -84,12 +81,17 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                     body: JSON.stringify({ khoa_binh_luan: newLockState }) 
                 }
             );
-
+    
             const responseData = await response.json();
-
+    
             if (response.ok) {
-                setIsCommentsLocked(newLockState);
+                setIsCommentsLocked(newLockState); 
                 Alert.alert("Thành công", newLockState ? "Bình luận đã bị khóa" : "Bình luận đã được mở khóa");
+    
+                // Gọi lại loadPostData để cập nhật bình luận khi mở khóa
+                if (!newLockState) {
+                    loadPostData();
+                }
             } else {
                 console.error("API lỗi:", responseData);
                 Alert.alert("Lỗi", responseData.error || "Không thể cập nhật trạng thái bình luận.");
@@ -99,6 +101,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             Alert.alert("Lỗi", "Không thể kết nối đến server.");
         }
     };
+    
 
     const handleCommentLongPress = async (comment) => {
         if (!userLogin) return;
@@ -377,7 +380,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 ))}
             </View>
 
-            {!isCommentsLocked ? (
+            {showCommentInput && !isCommentsLocked ? (
                 <View style={styles.commentInputContainer}>
                     <TextInput
                         style={styles.commentInput}
@@ -391,7 +394,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                     </TouchableOpacity>
                 </View>
             ) : (
-                <Text style={styles.lockedText}>🔒 Bình luận đã bị khóa</Text>
+                <Text style={styles.lockedText}></Text>
             )}
 
             <Text style={styles.commentListTitle}>Bình luận ({comments.length})</Text>
