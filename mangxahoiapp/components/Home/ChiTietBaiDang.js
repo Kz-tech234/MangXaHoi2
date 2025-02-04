@@ -105,48 +105,56 @@ const ChiTietBaiDang = ({ route, navigation }) => {
 
 
     const handleCommentLongPress = async (comment) => {
-        if (!userLogin) return;
-
+        if (!userLogin) {
+            Alert.alert("Lỗi", "Bạn cần đăng nhập để thực hiện thao tác này.");
+            return;
+        }
+    
         try {
             console.log("🛠 Kiểm tra quyền trên bình luận ID:", comment.id);
-
-            // Lấy thông tin bài đăng
+    
+            // Lấy thông tin bài đăng để kiểm tra chủ bài đăng
             const postResponse = await fetch(`https://chickenphong.pythonanywhere.com/baidangs/${comment.baiDang}/`);
             if (!postResponse.ok) {
-                console.error("❌ Lỗi khi lấy thông tin bài đăng:", postResponse.status);
+                Alert.alert("Lỗi", "Không thể lấy thông tin bài đăng. Vui lòng thử lại!");
                 return;
             }
-
+    
             const postData = await postResponse.json();
             console.log("👑 Chủ bài đăng ID:", postData.nguoiDangBai);
-
-            // Kiểm tra quyền
-            const isPostOwner = userLogin.id === postData.nguoiDangBai; // Chủ bài đăng
-            const isCommentOwner = userLogin.id === comment.nguoiBinhLuan; // Chủ bình luận
-
+    
+            // Kiểm tra quyền sở hữu
+            const isPostOwner = userLogin?.id === postData?.nguoiDangBai; // Chủ bài đăng
+            const isCommentOwner = userLogin?.id === comment?.nguoiBinhLuan; // Chủ bình luận
+    
             console.log("✅ Chủ bài đăng:", isPostOwner, "| ✅ Chủ bình luận:", isCommentOwner);
-
+    
             let options = [];
-
+    
+            // Người viết bình luận có thể sửa bình luận của mình
             if (isCommentOwner) {
                 options.push({ text: "Sửa", onPress: () => startEditingComment(comment) });
             }
-
+    
+            // Người đăng bài có thể xóa mọi bình luận trong bài đăng của họ
             if (isPostOwner || isCommentOwner) {
                 options.push({ text: "Xóa", onPress: () => deleteComment(comment) });
             }
-
+    
             options.push({ text: "Hủy", style: "cancel" });
-
+    
+            // Hiển thị tùy chọn nếu có quyền
             if (options.length > 1) {
                 Alert.alert("Tuỳ chọn", "Bạn muốn làm gì với bình luận này?", options);
             } else {
-                console.log("🚫 Người dùng không có quyền sửa hoặc xóa bình luận này.");
+                Alert.alert("Thông báo", "Bạn không có quyền sửa hoặc xóa bình luận này.");
             }
         } catch (error) {
-            console.error("Lỗi khi lấy thông tin bài đăng:", error);
+            console.error("❌ Lỗi khi lấy thông tin bài đăng:", error);
+            Alert.alert("Lỗi", "Không thể kết nối đến server.");
         }
     };
+    
 
 
     const deleteComment = async (comment) => {
@@ -424,6 +432,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             <Text style={styles.commentListTitle}>Bình luận ({comments.length})</Text>
             {comments.map(comment => {
                 const isCommentOwner = userLogin?.id === comment.nguoiBinhLuan;
+                const isPostOwner =  userLogin?.id === baiDang.nguoiDangBai;
                 return (
                     <View key={comment.id} style={styles.commentItem}>
                         <TouchableOpacity onPress={() => navigation.navigate('TrangCaNhan', { userId: comment.user.id })}>
@@ -436,7 +445,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                         <View style={styles.commentContent}>
                             <TouchableOpacity
                                 onLongPress={() => {
-                                    if (isCommentOwner) {
+                                    if (isCommentOwner || isPostOwner) {
                                         handleCommentLongPress(comment);
                                     }
                                 }}
