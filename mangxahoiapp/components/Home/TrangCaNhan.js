@@ -161,27 +161,15 @@ const TrangCaNhan = ({ route, navigation }) => {
             <Text style={styles.contactText}>Ngày tham gia: {formatDate(userData.date_joined)}</Text>
           </View>
 
-          {userLogin.id !== userId && (
-            <View style={styles.followButtonContainer}>
-              {isFollowing ? (
-                <>
-                  <TouchableOpacity onPress={handleUnfollow} style={styles.button}>
-                    <Ionicons name="person-remove" size={24} color="#fff" />
-                    <Text style={styles.buttonText}>Hủy theo dõi</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleMessage} style={[styles.button, styles.messageButton]}>
-                    <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
-                    <Text style={styles.buttonText}>Nhắn tin</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <TouchableOpacity onPress={handleFollow} style={styles.button}>
-                  <Ionicons name="person-add" size={24} color="#fff" />
-                  <Text style={styles.buttonText}>Theo dõi</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+          {/* 🔹 Chỉ hiển thị NÚT NHẮN TIN nếu đây là trang cá nhân của người khác */}
+          <View style={styles.followButtonContainer}>
+            {userLogin.id !== userId && (
+              <TouchableOpacity onPress={handleMessage} style={[styles.button, styles.messageButton]}>
+                <Ionicons name="chatbubble-ellipses" size={24} color="#fff" />
+                <Text style={styles.buttonText}>Nhắn tin</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           <Text style={styles.postsTitle}>Bài viết của {userData.first_name}:</Text>
 
