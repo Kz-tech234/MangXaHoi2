@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, RefreshControl, Alert } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, RefreshControl, Alert, Pressable } from "react-native";
 import { Avatar, Icon } from "react-native-elements";
 import { MyUserContext } from "../../configs/MyUserContext";
 
@@ -24,6 +24,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
     });
     const [isCommentsLocked, setIsCommentsLocked] = useState(baiDang.khoa_binh_luan);
     const [refreshing, setRefreshing] = useState(false);
+    const [showReactions, setShowReactions] = useState(false);
 
     useEffect(() => {
         if (!baiDang?.id) return;
@@ -69,7 +70,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
     const toggleLockComments = async () => {
         try {
             const newLockState = !isCommentsLocked;
-    
+
             const response = await fetch(
                 `https://chickenphong.pythonanywhere.com/baidangs/${baiDang.id}/khoa-binh-luan/`,
                 {
@@ -78,16 +79,16 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                         "Authorization": `Bearer ${userLogin.token}`,
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({ khoa_binh_luan: newLockState }) 
+                    body: JSON.stringify({ khoa_binh_luan: newLockState })
                 }
             );
-    
+
             const responseData = await response.json();
-    
+
             if (response.ok) {
-                setIsCommentsLocked(newLockState); 
+                setIsCommentsLocked(newLockState);
                 Alert.alert("Thành công", newLockState ? "Bình luận đã bị khóa" : "Bình luận đã được mở khóa");
-    
+
                 // Gọi lại loadPostData để cập nhật bình luận khi mở khóa
                 if (!newLockState) {
                     loadPostData();
@@ -101,7 +102,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             Alert.alert("Lỗi", "Không thể kết nối đến server.");
         }
     };
-    
+
 
     const handleCommentLongPress = async (comment) => {
         if (!userLogin) return;
@@ -355,22 +356,45 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             {baiDang.image && <Image source={{ uri: baiDang.image }} style={styles.postImage} />}
 
             <View style={styles.postFooter}>
-                <TouchableOpacity
+                {/* Nút Thích với chức năng giữ để hiển thị nhiều cảm xúc */}
+                <Pressable
                     style={styles.footerButton}
                     onPress={() => handleReactionSelect("like")}
+                    onLongPress={() => setShowReactions(true)} // Nhấn giữ để hiển thị menu
                 >
                     <Text style={styles.reactionText}>
                         {selectedReaction ? reactions[selectedReaction] : "👍"}
                     </Text>
-                    <Text style={[styles.footerText, { color: selectedReaction ? "#007bff" : "#666" }]}>{selectedReaction ? "Bạn đã thích" : "Thích"}</Text>
-                </TouchableOpacity>
+                    <Text style={[styles.footerText, { color: selectedReaction ? "#007bff" : "#666" }]}>
+                        {selectedReaction ? "Bạn đã thích" : "Thích"}
+                    </Text>
+                </Pressable>
 
+                {/* Menu hiển thị các cảm xúc khi nhấn giữ */}
+                {showReactions && (
+                    <View style={styles.reactionsContainer}>
+                        {Object.keys(reactions).map(reaction => (
+                            <TouchableOpacity
+                                key={reaction}
+                                onPress={() => {
+                                    handleReactionSelect(reaction);
+                                    setShowReactions(false); // Tắt menu ngay sau khi chọn
+                                }}
+                                style={styles.reactionItem}
+                            >
+                                <Text style={styles.reactionText}>{reactions[reaction]}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
+
+                {/* Nút bình luận */}
                 <TouchableOpacity style={styles.footerButton} onPress={() => setShowCommentInput(!showCommentInput)}>
                     <Icon name="chat-bubble-outline" type="material" color="#666" />
                     <Text style={styles.footerText}>Bình luận</Text>
                 </TouchableOpacity>
-
             </View>
+
 
             <View style={styles.reactionCountContainer}>
                 {Object.keys(reactions).map(reaction => (
@@ -465,19 +489,57 @@ const styles = StyleSheet.create({
     commentContent: { marginLeft: 10, backgroundColor: "#f0f0f0", padding: 10, borderRadius: 10 },
     commentUser: { fontSize: 14, fontWeight: "bold", marginBottom: 3 },
     commentTime: { fontSize: 12, color: "#888", marginBottom: 5 },
-    lockButton: { 
-        position: "absolute", 
-        right: 10, 
-        top: 10, 
-        backgroundColor: "#007bff", 
-        padding: 8, 
-        borderRadius: 5 
+    lockButton: {
+        position: "absolute",
+        right: 10,
+        top: 10,
+        backgroundColor: "#007bff",
+        padding: 8,
+        borderRadius: 5
     },
-    lockedText: { 
-        color: "#FF0000", 
-        textAlign: "center", 
-        fontWeight: "bold", 
-        marginTop: 10 
+    lockedText: {
+        color: "#FF0000",
+        textAlign: "center",
+        fontWeight: "bold",
+        marginTop: 10
+    },
+    postFooter: {
+        flexDirection: "row",
+        justifyContent: "space-around",
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderTopColor: "#ddd",
+        position: "relative", // Để đảm bảo menu hiển thị đúng vị trí
+    },
+    footerButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+    },
+    footerText: {
+        marginLeft: 5,
+        fontSize: 14,
+        color: "#666",
+    },
+    reactionText: {
+        fontSize: 18,
+    },
+    reactionsContainer: {
+        flexDirection: "row",
+        backgroundColor: "#fff",
+        padding: 8,
+        borderRadius: 10,
+        position: "absolute",
+        bottom: 40, // Hiển thị phía trên nút
+        shadowColor: "#000",
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+        elevation: 3,
+    },
+    reactionItem: {
+        marginHorizontal: 5,
+        padding: 5,
     },
 });
 
