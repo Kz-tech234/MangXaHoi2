@@ -60,7 +60,7 @@ const TrangCaNhan = ({ route, navigation }) => {
         if (userLoginTmp?.id) {
           const response = await axios.get(`${API_URL}/users/${userLoginTmp.id}`);
           setUserTuongTac(response.data.tuongTac || []);
-          
+
           // Kiểm tra nếu người dùng đã theo dõi
           if (response.data.tuongTac && response.data.tuongTac.includes(userId)) {
             setIsFollowing(true);
@@ -136,7 +136,7 @@ const TrangCaNhan = ({ route, navigation }) => {
         <>
           <View style={styles.coverContainer}>
             <Image
-              source={userData.coverImage ? { uri: `https://chickenphong.pythonanywhere.com${user.coverImage}` } : require("../../assets/anh3.jpg")}
+              source={userData?.coverImage ? { uri: `${API_URL}${userData.coverImage}` } : require("../../assets/anh3.jpg")}
               style={styles.coverImage}
             />
             <View style={styles.profileHeader}>

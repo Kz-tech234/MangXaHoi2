@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert } from "react-native";
 import { MyDispatchContext, MyUserContext } from "../../configs/MyUserContext";
 import MyStyles from "../../styles/MyStyles";
 import { Button, IconButton, Menu, Provider } from "react-native-paper";
@@ -97,7 +97,7 @@ const Profile = ({ route, navigation }) => {
 
   const handleCreatePost = async () => {
     if (!newPostTitle || !newPostContent) {
-      alert("Vui lòng nhập tiêu đề và nội dung bài đăng");
+      Alert.alert("Thông báo","Vui lòng nhập tiêu đề và nội dung bài đăng");
       return;
     }
   
