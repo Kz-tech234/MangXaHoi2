@@ -4,6 +4,8 @@ from ckeditor.fields import RichTextField
 from django.contrib.auth.models import AbstractUser
 from enum import IntEnum
 from cloudinary.models import CloudinaryField
+from django.utils.timezone import now
+
 
 class VaiTro(IntEnum):
     QUANTRIVIEN = 1
@@ -18,20 +20,28 @@ class User(AbstractUser):
     SDT = models.CharField(max_length=10)
     # image = CloudinaryField('avatar', null=True)
     image = models.ImageField(upload_to='media/nguoidungs/%Y/%m/', null=True)
+    coverImage = models.ImageField(upload_to='media/cover_images/%Y/%m/', null=True, blank=True)
     vaiTro = models.IntegerField(choices=VaiTro.choices(), default=VaiTro.QUANTRIVIEN)
     tuongTac = models.ManyToManyField("self", symmetrical=False, related_name="tuong_tac")
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)  # Thời gian tạo tài khoản
+    password_changed = models.BooleanField(default=False)  # Giảng viên đã đổi mật khẩu chưa?
+    manually_unlocked = models.BooleanField(default=False)  # Đánh dấu admin đã mở khóa
 
     class Meta:
         verbose_name_plural = 'Người dùng'
 
     def save(self, *args, **kwargs):
-        # Chỉ thiết lập giá trị mặc định khi tạo mới người dùng
+        # Chỉ kiểm tra khi tạo tài khoản mới
         if self._state.adding:
             if self.vaiTro == VaiTro.CUUSINHVIEN:
                 self.is_active = False  # Chờ xét duyệt
+            elif self.vaiTro == VaiTro.GIANGVIEN:
+                self.is_active = True  # Giảng viên được kích hoạt ngay lập tức
+                self.password_changed = False  # Đánh dấu chưa đổi mật khẩu
             else:
-                self.is_active = True  # Mặc định kích hoạt cho Quản trị viên và Giảng viên
+                self.is_active = True  # Mặc định kích hoạt cho Quản trị viên
+
         super().save(*args, **kwargs)
 
 class BaiDang(models.Model):
@@ -47,6 +57,18 @@ class BaiDang(models.Model):
 
     def __str__(self):
         return self.tieuDe
+
+    def tong_luot_tuong_tac(self):
+        return self.reactions.count()
+
+    def tong_luot_like(self):
+        return self.reactions.filter(loai=ReactionType.LIKE.value).count()
+
+    def tong_luot_love(self):
+        return self.reactions.filter(loai=ReactionType.LOVE.value).count()
+
+    def tong_luot_haha(self):
+        return self.reactions.filter(loai=ReactionType.HAHA.value).count()
 
 class BinhLuan(models.Model):
     baiDang = models.ForeignKey(BaiDang, on_delete=models.CASCADE, related_name='binhluans')
@@ -79,6 +101,9 @@ class Reaction(models.Model):
     class Meta:
         verbose_name_plural = 'Cảm xúc'
         unique_together = ('baiDang', 'nguoiThucHien')
+
+    def __str__(self):
+        return f"{self.nguoiThucHien.username} reacted {self.get_loai_display()} on {self.baiDang.tieuDe}"
 
 class KhaoSat(models.Model):
     tieuDe = models.CharField(max_length=255)

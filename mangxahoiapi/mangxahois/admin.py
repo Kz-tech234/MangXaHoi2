@@ -1,10 +1,12 @@
+from html import unescape
+
 from django import forms
 from django.contrib import admin
 from django.core.mail import send_mail
 from django.http import HttpResponseRedirect, request
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
-from django.utils.html import mark_safe
+from django.utils.html import mark_safe, strip_tags, format_html
 from .models import User, BaiDang, BinhLuan, Reaction, LuaChon, CauHoi, KhaoSat, TraLoi, ThongKeKhaoSat, VaiTro, ThongBaoSuKien
 
 
@@ -24,15 +26,20 @@ class MyAdminSite(admin.AdminSite):
         })
 
 class UserAdmin(admin.ModelAdmin):
-    fields = ('username', 'password', 'email', 'first_name', 'last_name', 'SDT', 'vaiTro', 'image','avatar', 'is_active')
+    fields = ('username', 'password', 'email', 'first_name', 'last_name', 'SDT', 'vaiTro', 'image', "coverImage",'avatar', 'is_active', 'manually_unlocked')
     list_display = ['username', 'email', 'SDT', 'vaiTro', 'is_active']
     search_fields = ['username']
-    readonly_fields = ['avatar']
+    readonly_fields = ['avatar', 'coverPreview']
 
     def avatar(self, nguoidung):
         if nguoidung.image:
             return mark_safe(f'<img src="{nguoidung.image.url}" width="200" />')
         return "No Image"
+
+    def coverPreview(self, nguoidung):
+        if nguoidung.coverImage:
+            return mark_safe(f'<img src="{nguoidung.coverImage.url}" width="300" />')
+        return "No Cover Image"
 
     def save_model(self, request, obj, form, change):
         # Chỉ gán giá trị mặc định khi tạo mới người dùng
@@ -56,7 +63,7 @@ class UserAdmin(admin.ModelAdmin):
                 subject = "Thông tin tài khoản giảng viên"
                 message = (
                     f"Xin chào {obj.first_name} {obj.last_name},\n\n"
-                    f"Tài khoản của bạn đã được tạo thành công trên hệ thống.\n"
+                    f"Tài khoản giảng viên của bạn đã được quản trị viên tạo thành công.\n"
                     f"Thông tin đăng nhập:\n"
                     f"Username: {obj.username}\n"
                     f"Password: {default_password}\n\n"
@@ -67,6 +74,11 @@ class UserAdmin(admin.ModelAdmin):
                 send_mail(subject, message, 'admin@yourdomain.com', [obj.email])
 
             obj.set_password(form.cleaned_data['password'])
+
+        elif change:
+            previous_instance = User.objects.get(pk=obj.pk)
+            if previous_instance.is_active == False and obj.is_active == True:
+                obj.manually_unlocked = True  # Admin đã mở khóa
         super().save_model(request, obj, form, change)
 
     def response_add(self, request, obj, post_url_continue=None):
@@ -106,7 +118,7 @@ class BinhLuanInline(admin.TabularInline):
     readonly_fields = ['nguoiBinhLuan', 'noiDung', 'created_date']
 
 class BaiDangAdmin(admin.ModelAdmin):
-    list_display = ['tieuDe', 'nguoiDangBai', 'created_date', 'khoa_binh_luan_status']
+    list_display = ['tieuDe', 'nguoiDangBai', 'created_date', 'khoa_binh_luan_status', 'tong_luot_tuong_tac', 'tong_luot_like']
     search_fields = ['tieuDe']
     list_filter = ['created_date', 'nguoiDangBai']
     actions = ['khoa_binh_luan']
@@ -122,6 +134,16 @@ class BaiDangAdmin(admin.ModelAdmin):
         self.message_user(request, "Bình luận đã được khóa.")
 
     khoa_binh_luan.short_description = "Khóa bình luận của bài đăng"
+
+    def tong_luot_tuong_tac(self, obj):
+        return obj.tong_luot_tuong_tac()
+
+    tong_luot_tuong_tac.short_description = "Tổng lượt tương tác"
+
+    def tong_luot_like(self, obj):
+        return obj.tong_luot_like()
+
+    tong_luot_like.short_description = "Tổng lượt Like"
 
 class ReactionAdmin(admin.ModelAdmin):
     list_display = ['baiDang', 'nguoiThucHien', 'loai']
@@ -195,8 +217,10 @@ class ThongBaoSuKienForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Lọc người dùng có vai trò là Quản Trị Viên
+        self.fields['nguoiGui'].queryset = User.objects.filter(vaiTro=VaiTro.QUANTRIVIEN)
         # Lọc người dùng có vai trò là CỰU SINH VIÊN
-        self.fields['nhomNhan'].queryset = User.objects.filter(vaiTro=VaiTro.CUUSINHVIEN)
+        self.fields['nhomNhan'].queryset = User.objects.filter(vaiTro=VaiTro.CUUSINHVIEN, is_active=True)
 
 
 class ThongBaoSuKienAdmin(admin.ModelAdmin):
@@ -206,14 +230,26 @@ class ThongBaoSuKienAdmin(admin.ModelAdmin):
     filter_horizontal = ('nhomNhan',)
 
     def save_model(self, request, obj, form, change):
-        # Lưu đối tượng trước để có ID
-        super().save_model(request, obj, form, change)
+        super().save_model(request, obj, form, change)  # Lưu trước để có ID
 
-        # Sau khi lưu, gửi email
+        # Đảm bảo rằng nhóm nhận đã được lưu
+        if 'nhomNhan' in form.cleaned_data:
+            obj.nhomNhan.set(form.cleaned_data['nhomNhan'])  # Cập nhật nhóm nhận
+
+        # Debug kiểm tra dữ liệu đã lưu
+        print(f"Thông báo ID {obj.id} được gửi đến nhóm: {list(obj.nhomNhan.values('id', 'username', 'email'))}")
+
+        # Gửi email sau khi đã lưu nhóm nhận
         self.send_email_notifications(request, obj)
 
     def send_email_notifications(self, request, obj):
         recipient_emails = [user.email for user in obj.nhomNhan.all() if user.email]
+
+        # Giải mã HTML entities + loại bỏ thẻ HTML
+        clean_noiDung = strip_tags(unescape(obj.noiDung))
+
+        # Debug danh sách email
+        print("Danh sách email được gửi:", recipient_emails)
 
         if recipient_emails:
             subject = f"Thông báo sự kiện: {obj.tieuDe}"
@@ -221,8 +257,7 @@ class ThongBaoSuKienAdmin(admin.ModelAdmin):
                 f"Xin chào,\n\n"
                 f"Bạn đã nhận được một thông báo sự kiện mới từ hệ thống.\n\n"
                 f"Nội dung sự kiện:\n"
-                f"{obj.noiDung}\n\n"
-                f"Vui lòng tham gia sự kiện đúng giờ.\n\n"
+                f"{clean_noiDung}\n\n"  # Nội dung đã loại bỏ HTML
                 f"Trân trọng,\nQuản trị viên"
             )
             try:
@@ -232,7 +267,6 @@ class ThongBaoSuKienAdmin(admin.ModelAdmin):
                 self.message_user(request, f"Lỗi khi gửi email: {e}", level="ERROR")
         else:
             self.message_user(request, "Không có email nào hợp lệ để gửi thông báo.", level="WARNING")
-
     def response_add(self, request, obj, post_url_continue=None):
         if "_addanother" in request.POST:
             return super().response_add(request, obj, post_url_continue)
