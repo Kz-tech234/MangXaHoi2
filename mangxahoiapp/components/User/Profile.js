@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert, RefreshControl } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert } from "react-native";
 import { MyDispatchContext, MyUserContext } from "../../configs/MyUserContext";
 import MyStyles from "../../styles/MyStyles";
 import { Button, IconButton, Menu, Provider } from "react-native-paper";
@@ -12,15 +12,15 @@ const Profile = ({ route, navigation }) => {
   const [userPosts, setUserPosts] = useState([]);
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
-  const [coverImage, setCoverImage] = useState(user?.coverImage || null);
+  // Khởi tạo coverImage từ user nếu có; nếu server trả về đường dẫn tương đối, ghép domain ở đây
+  const [coverImage, setCoverImage] = useState(
+    user?.coverImage ? `https://chickenphong.pythonanywhere.com${user.coverImage}` : null
+  );
   const dispatch = useContext(MyDispatchContext);
-  const [refreshing, setRefreshing] = useState(false);
 
   const logout = async () => {
     await AsyncStorage.removeItem("token");
-    dispatch({
-      type: "logout"
-    });
+    dispatch({ type: "logout" });
   };
 
   const getVaiTroName = (vaiTro) => {
@@ -40,34 +40,33 @@ const Profile = ({ route, navigation }) => {
     return `${day}/${month}/${year}`;
   };
 
-  const loadUserData = async () => {
-    if (!user) return;
-    setRefreshing(true);
-
-    try {
-      const resUser = await axios.get(`https://chickenphong.pythonanywhere.com/users/${user.id}/`);
-      setCoverImage(resUser.data.coverImage);
-
-      const resPosts = await axios.get(`https://chickenphong.pythonanywhere.com/baidangs/`);
-      const filteredPosts = resPosts.data.filter(post => post.nguoiDangBai === user.id);
-      const sortedPosts = filteredPosts.sort((b, a) => new Date(a.created_date) - new Date(b.created_date));
-      setUserPosts(sortedPosts);
-    } catch (error) {
-      console.error("Lỗi khi tải dữ liệu:", error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
   useEffect(() => {
-    loadUserData();
-  }, [user]);
+    if (user) {
+      // Lấy ảnh nền từ API và cập nhật state coverImage với URL đầy đủ (nếu cần)
+      axios.get(`https://chickenphong.pythonanywhere.com/users/${user.id}/`)
+        .then((response) => {
+          if (response.data.coverImage) {
+            const fullUrl = `https://chickenphong.pythonanywhere.com${response.data.coverImage}`;
+            setCoverImage(fullUrl);
+            // Cập nhật lại user nếu cần
+            user.coverImage = response.data.coverImage;
+          }
+        })
+        .catch((error) => console.error("Lỗi lấy ảnh nền:", error));
 
-  const handleRefresh = () => {
-    loadUserData();
-  };
+      // Lấy danh sách bài đăng của user
+      fetch(`https://chickenphong.pythonanywhere.com/baidangs/`)
+        .then((response) => response.json())
+        .then((data) => {
+          const filteredPosts = data.filter(post => post.nguoiDangBai === user.id);
+          const sortedPosts = filteredPosts.sort((b, a) => new Date(b.created_date) - new Date(a.created_date));
+          setUserPosts(sortedPosts);
+        })
+        .catch((error) => console.error("Error fetching user posts:", error));
+    }
+  }, [user]); 
 
-  const [visible, setVisible] = useState(false); 
+  const [visible, setVisible] = useState(false);
   const showMenu = () => setVisible(true);
   const hideMenu = () => setVisible(false);
 
@@ -80,6 +79,7 @@ const Profile = ({ route, navigation }) => {
     });
 
     if (!result.canceled) {
+      // Hiển thị ngay ảnh tạm thời (local URI)
       setCoverImage(result.assets[0].uri);
       updateCoverImage(result.assets[0].uri);
     }
@@ -90,13 +90,22 @@ const Profile = ({ route, navigation }) => {
     formData.append('coverImage', { uri, name: 'cover.jpg', type: 'image/jpeg' });
 
     try {
-      await axios.patch(`https://chickenphong.pythonanywhere.com/users/${user.id}/`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const response = await axios.patch(
+        `https://chickenphong.pythonanywhere.com/users/${user.id}/`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
       Alert.alert("Cập nhật thành công", "Ảnh bìa đã được thay đổi");
-      handleRefresh();
-      // setCoverImage(uri); // Cập nhật UI
-      // user.coverImage = uri; // Cập nhật lại user
+      // Nếu server trả về đường dẫn tương đối, ghép domain và cập nhật state
+      if (response.data.coverImage) {
+        const fullUrl = `https://chickenphong.pythonanywhere.com${response.data.coverImage}`;
+        setCoverImage(fullUrl);
+        user.coverImage = response.data.coverImage;
+      } else {
+        // Nếu không có dữ liệu trả về từ server, giữ lại URI đã chọn
+        setCoverImage(uri);
+        user.coverImage = uri;
+      }
     } catch (error) {
       console.error("Lỗi cập nhật ảnh bìa:", error);
       Alert.alert("Lỗi", "Không thể cập nhật ảnh bìa. Hãy thử lại sau.");
@@ -112,21 +121,19 @@ const Profile = ({ route, navigation }) => {
     const formData = {
       tieuDe: newPostTitle,
       thongTin: newPostContent,
-      nguoiDangBai: user.id, // ID người dùng đang đăng bài
+      nguoiDangBai: user.id,
     };
   
     try {
       const response = await axios.post(`https://chickenphong.pythonanywhere.com/baidangs/`, formData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
   
       if (response.status === 201) {
         alert("Bài đăng đã được tạo thành công!");
         setNewPostTitle("");
         setNewPostContent("");
-        setUserPosts([response.data, ...userPosts]); // Cập nhật danh sách bài viết
+        setUserPosts([response.data, ...userPosts]);
       } else {
         alert("Không thể đăng bài, vui lòng thử lại.");
       }
@@ -138,15 +145,13 @@ const Profile = ({ route, navigation }) => {
 
   return (
     <Provider>
-      <ScrollView 
-        style={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-      >
+      <ScrollView style={styles.container}>
         {user ? (
           <>
             <TouchableOpacity onPress={pickCoverImage} style={styles.coverContainer}>
+              {/* Sử dụng biến coverImage state để hiển thị ảnh bìa */}
               <Image
-                source={user.coverImage ? { uri: `https://chickenphong.pythonanywhere.com${user.coverImage}` } : require("../../assets/anh3.jpg")}
+                source={coverImage ? { uri: coverImage } : require("../../assets/anh3.jpg")}
                 style={styles.coverImage}
               />
             </TouchableOpacity>
@@ -183,7 +188,7 @@ const Profile = ({ route, navigation }) => {
                 <Button mode="contained" onPress={() => navigation.navigate('ChangePassword')}>
                   Thay đổi mật khẩu
                 </Button>
-              </View> // <-- Đóng thẻ View ở đây
+              </View>
             )}
 
             {user.vaiTro === 3 && (

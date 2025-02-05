@@ -16,21 +16,19 @@ const TimNguoiKhac = () => {
         const response = await fetch("https://chickenphong.pythonanywhere.com/users/");
         const data = await response.json();
         
-        // ⚠️ Lọc bỏ tài khoản có vai trò `1` (Admin)
+        // Lọc bỏ tài khoản có vai trò `1` (Admin)
         const normalUsers = data.filter(user => user.vaiTro !== 1);
-        
-        console.log("📸 Dữ liệu user (không admin):", normalUsers); 
         setUsers(normalUsers); 
         setFilteredUsers(normalUsers); 
       } catch (error) {
-        console.error("❌ Lỗi khi lấy danh sách người dùng:", error);
+        console.error(" Lỗi khi lấy danh sách người dùng:", error);
       }
     };
 
     fetchUsers();
   }, []); 
 
-  // 🔹 Xử lý tìm kiếm người dùng theo tên (first_name + last_name)
+  // Xử lý tìm kiếm người dùng theo tên (first_name + last_name)
   const handleSearch = (query) => {
     setSearchQuery(query);
     const filtered = users.filter(user => {
@@ -40,14 +38,14 @@ const TimNguoiKhac = () => {
     setFilteredUsers(filtered);
   };
 
-  // 🔹 Điều hướng đến trang cá nhân khi nhấn vào người dùng
+  // Điều hướng đến trang cá nhân khi nhấn vào người dùng
   const handleUserPress = (userId) => {
     navigation.navigate("TrangCaNhan", { userId });
   };
 
   return (
     <View style={styles.container}>
-      {/* 🔎 Ô tìm kiếm người dùng */}
+      {/* Ô tìm kiếm người dùng */}
       <TextInput
         style={styles.searchInput}
         placeholder="Tìm kiếm theo tên..."
@@ -55,7 +53,7 @@ const TimNguoiKhac = () => {
         onChangeText={handleSearch} 
       />
 
-      {/* 📋 Danh sách người dùng */}
+      {/* Danh sách người dùng */}
       <FlatList
         data={filteredUsers}
         keyExtractor={(item) => item.id.toString()}

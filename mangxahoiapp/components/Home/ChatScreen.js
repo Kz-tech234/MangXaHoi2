@@ -3,7 +3,7 @@ import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from "r
 import { getDatabase, ref, onValue, push, set } from "firebase/database";
 import { MyUserContext } from "../../configs/MyUserContext";
 import { Ionicons } from "@expo/vector-icons";
-import moment from "moment"; // 📌 Thêm moment.js để xử lý thời gian
+import moment from "moment"; 
 
 const ChatScreen = ({ route }) => {
   const { recipientId, recipientName } = route.params;
@@ -49,7 +49,6 @@ const ChatScreen = ({ route }) => {
 
       setNewMessage(""); // Xóa input sau khi gửi
     } catch (error) {
-      console.error("Lỗi gửi tin nhắn:", error);
     }
   };
 

@@ -18,7 +18,7 @@ from django.urls import path, include, re_path
 from rest_framework.routers import DefaultRouter
 from mangxahois.views import (
     UserViewSet, BaiDangViewSet, BinhLuanViewSet, ReactionViewSet,
-    user_stats_api, get_available_years #, post_stats_api
+    user_stats_api, get_available_years , post_stats_api
 )
 from mangxahois.admin import admin_site
 from drf_yasg.views import get_schema_view
@@ -42,7 +42,7 @@ urlpatterns = [
     path('', include('mangxahois.urls')),
     path('admin/', admin_site.urls),
     path('user-stats-api/', user_stats_api, name='user_stats_api'),
-    #path('api/post-stats/', post_stats_api, name='post_stats_api'),
+    path('api/post-stats/', post_stats_api, name='post_stats_api'),
     path('get-available-years/', get_available_years, name='get_available_years'),
 
     # API documentations

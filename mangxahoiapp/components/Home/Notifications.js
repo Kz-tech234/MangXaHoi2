@@ -24,16 +24,12 @@ const Notifications = () => {
 
   useEffect(() => {
     loadNotifications();
-    if (user?.vaiTro === 1) { // Nếu là Quản trị viên, tải danh sách Cựu sinh viên
       loadRecipients();
-    }
   }, [user]);
 
   const loadNotifications = async () => {
     try {
-      console.log("Fetching notifications...");
       const res = await APIs.get(endpoints["thongbaosukiens"]);
-      console.log("API Response:", res.data);
       setNotifications(res.data);
     } catch (error) {
       console.error("Lỗi khi tải thông báo:", error);
@@ -45,12 +41,10 @@ const Notifications = () => {
 
   const loadRecipients = async () => {
     try {
-      console.log("Fetching recipients...");
       const res = await APIs.get(endpoints["users"]);
       const filteredUsers = res.data.filter(user => user.vaiTro === 3 && user.is_active);
       setRecipients(filteredUsers);
     } catch (error) {
-      console.error("Lỗi khi tải danh sách người nhận:", error);
     }
   };
 

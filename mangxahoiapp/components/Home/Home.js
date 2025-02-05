@@ -14,7 +14,7 @@ const Home = () => {
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
 
-  // 🚀 Tải danh sách bài đăng và người dùng
+  // Tải danh sách bài đăng và người dùng
   const loadBaidangs = async () => {
     try {
       const res = await APIs.get(endpoints["baidangs"]);
@@ -45,7 +45,7 @@ const Home = () => {
     setRefreshing(false);
   };
 
-  // ✅ Hàm xóa bài đăng (Chỉ Admin mới thấy)
+  //  Hàm xóa bài đăng (Chỉ Admin mới thấy)
   const handleDeletePost = async (baiDangId) => {
     Alert.alert(
       "Xóa bài đăng",

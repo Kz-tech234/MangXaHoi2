@@ -9,7 +9,6 @@ const CreatePost = ({ navigation }) => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   
-  console.log("User Context:", user); // Debug để kiểm tra giá trị user
 
   if (!user || !user.id) {
     Alert.alert("Lỗi", "Bạn chưa đăng nhập!");

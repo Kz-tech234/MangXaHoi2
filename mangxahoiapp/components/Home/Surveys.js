@@ -12,16 +12,12 @@ const Surveys = ({ navigation }) => {
   useEffect(() => {
     const loadSurveys = async () => {
       try {
-        console.log("Fetching surveys...");
         const res = await APIs.get(endpoints["khaosats"]);
 
         // Kiểm tra dữ liệu có chứa 'created_date' không
         if (!res.data || !Array.isArray(res.data)) {
           throw new Error("Dữ liệu khảo sát không hợp lệ.");
         }
-
-        // In dữ liệu để kiểm tra
-        console.log("Dữ liệu API:", res.data);
 
         // Sắp xếp khảo sát theo thời gian tạo mới nhất lên trên
         const sortedSurveys = res.data.sort((a, b) => 
@@ -69,7 +65,6 @@ const Surveys = ({ navigation }) => {
         <Text style={styles.emptyText}>Không có khảo sát nào.</Text>
       ) : (
         surveys.map((item) => {
-          console.log("Survey Item:", item); // Kiểm tra dữ liệu của từng khảo sát
 
           return (
             <ListItem key={item.id} bottomDivider>

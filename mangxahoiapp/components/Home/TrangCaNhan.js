@@ -80,52 +80,6 @@ const TrangCaNhan = ({ route, navigation }) => {
 
   }, [userId, userLogin.id]);
 
-  const handleFollow = async () => {
-    try {
-      const updatedTuongTac = [...userTuongTac, userId];
-      setIsFollowing(true);
-
-      const formData = new FormData();
-      updatedTuongTac.forEach(id => formData.append('tuongTac', id));
-
-      await axios.patch(`${API_URL}/users/${userLogin.id}/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer yourAccessToken`,
-        },
-      });
-
-      setUserTuongTac(updatedTuongTac);
-      console.log("Cập nhật thành công");
-    } catch (error) {
-      setIsFollowing(false);
-      console.error("Lỗi khi cập nhật:", error.message);
-    }
-  };
-
-  const handleUnfollow = async () => {
-    try {
-      const updatedTuongTac = userTuongTac.filter(item => item !== userId);
-      setIsFollowing(false);
-
-      const formData = new FormData();
-      updatedTuongTac.forEach(id => formData.append('tuongTac', id));
-
-      await axios.patch(`${API_URL}/users/${userLogin.id}/`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer yourAccessToken`,
-        },
-      });
-
-      setUserTuongTac(updatedTuongTac);
-      console.log("Successfully unfollowed");
-    } catch (error) {
-      setIsFollowing(true);
-      console.error("Error unfollowing user:", error.message);
-    }
-  };
-
   const handleMessage = () => {
     navigation.navigate("ChatScreen", { recipientId: userId, recipientName: userData.first_name });
   };

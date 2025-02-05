@@ -44,7 +44,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
         fetch(`https://chickenphong.pythonanywhere.com/binhluans/?baiDang=${baiDang.id}`)
             .then(response => response.json())
             .then(data => {
-                // Lọc chỉ những bình luận có baiDang trùng với id của bài đăng
+                // Lọc những bình luận có baiDang trùng với id của bài đăng
                 const filteredComments = data.filter(comment => comment.baiDang === baiDang.id);
 
                 // Sắp xếp bình luận theo thời gian giảm dần (comment mới nhất nằm trên cùng)
@@ -121,13 +121,12 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             }
     
             const postData = await postResponse.json();
-            console.log("👑 Chủ bài đăng ID:", postData.nguoiDangBai);
+            
     
             // Kiểm tra quyền sở hữu
             const isPostOwner = userLogin?.id === postData?.nguoiDangBai; // Chủ bài đăng
             const isCommentOwner = userLogin?.id === comment?.nguoiBinhLuan; // Chủ bình luận
     
-            console.log("✅ Chủ bài đăng:", isPostOwner, "| ✅ Chủ bình luận:", isCommentOwner);
     
             let options = [];
     
@@ -150,7 +149,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 Alert.alert("Thông báo", "Bạn không có quyền sửa hoặc xóa bình luận này.");
             }
         } catch (error) {
-            console.error("❌ Lỗi khi lấy thông tin bài đăng:", error);
+            console.error(" Lỗi khi lấy thông tin bài đăng:", error);
             Alert.alert("Lỗi", "Không thể kết nối đến server.");
         }
     };
@@ -164,14 +163,11 @@ const ChiTietBaiDang = ({ route, navigation }) => {
         }
 
         try {
-            console.log("🔍 Đang kiểm tra quyền xóa bình luận ID:", comment.id);
-            console.log("👤 Người dùng hiện tại ID:", userLogin.id);
-            console.log("📌 Bài đăng ID:", comment.baiDang);
 
             // Lấy thông tin bài đăng để kiểm tra chủ bài đăng
             const postResponse = await fetch(`https://chickenphong.pythonanywhere.com/baidangs/${comment.baiDang}/`);
             if (!postResponse.ok) {
-                console.error("❌ Lỗi khi lấy thông tin bài đăng:", postResponse.status);
+                console.error(" Lỗi khi lấy thông tin bài đăng:", postResponse.status);
                 Alert.alert("Lỗi", "Không thể lấy thông tin bài đăng.");
                 return;
             }
@@ -182,8 +178,6 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             // Kiểm tra quyền
             const isPostOwner = userLogin.id === postData.nguoiDangBai; // Chủ bài đăng
             const isCommentOwner = userLogin.id === comment.nguoiBinhLuan; // Chủ bình luận
-
-            console.log("✅ Chủ bài đăng:", isPostOwner, "| ✅ Chủ bình luận:", isCommentOwner);
 
             if (!isPostOwner && !isCommentOwner) {
                 Alert.alert("Lỗi", "Bạn không có quyền xóa bình luận này.");
@@ -198,18 +192,15 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 }
             });
 
-            console.log("🔄 Response status khi xóa bình luận:", response.status);
-
             if (response.ok) {
                 setComments(prevComments => prevComments.filter(c => c.id !== comment.id));
-                console.log(`✅ Bình luận ${comment.id} đã bị xóa thành công.`);
             } else {
                 const errorText = await response.text();
-                console.error("❌ Lỗi khi xóa bình luận:", errorText);
+                console.error(" Lỗi khi xóa bình luận:", errorText);
                 Alert.alert("Lỗi", errorText);
             }
         } catch (error) {
-            console.error("❌ Lỗi khi xóa bình luận:", error);
+            console.error(" Lỗi khi xóa bình luận:", error);
             Alert.alert("Lỗi", "Không thể kết nối đến server.");
         }
     };
@@ -223,8 +214,6 @@ const ChiTietBaiDang = ({ route, navigation }) => {
         }
 
         try {
-            console.log("✍️ Đang cập nhật bình luận ID:", editingCommentId);
-            console.log("📝 Nội dung mới:", editedComment);
 
             const response = await fetch(`https://chickenphong.pythonanywhere.com/binhluans/${editingCommentId}/`, {
                 method: "PUT",
@@ -239,8 +228,6 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 }),
             });
 
-            console.log("🔄 Response status khi cập nhật bình luận:", response.status);
-
             if (response.ok) {
                 const updatedComment = await response.json();
                 setComments(prevComments =>
@@ -250,14 +237,11 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                 );
                 setEditingCommentId(null);
                 setEditedComment("");
-                console.log("✅ Bình luận đã được cập nhật.");
             } else {
                 const errorText = await response.text();
-                console.error("❌ Lỗi khi cập nhật bình luận:", errorText);
                 Alert.alert("Lỗi", "Không thể cập nhật bình luận. Vui lòng thử lại!");
             }
         } catch (error) {
-            console.error("❌ Lỗi khi cập nhật bình luận:", error);
             Alert.alert("Lỗi", "Không thể kết nối đến server.");
         }
     };
@@ -518,7 +502,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         borderTopWidth: 1,
         borderTopColor: "#ddd",
-        position: "relative", // Để đảm bảo menu hiển thị đúng vị trí
+        position: "relative", // đảm bảo menu hiển thị đúng vị trí
     },
     footerButton: {
         flexDirection: "row",
