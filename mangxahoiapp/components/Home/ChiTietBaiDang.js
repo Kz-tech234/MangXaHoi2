@@ -311,7 +311,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
             .then(response => response.json())
             .then(data => {
                 if (data && data.id) {
-                    setComments(prevComments => [data, ...prevComments]);
+                    setComments(prevComments => [{...data, user: userLogin}, ...prevComments]);
                     setNewComment("");
                 } else {
                     console.error("API không trả về dữ liệu hợp lệ:", data);
@@ -339,7 +339,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                         <Avatar
                             rounded
                             size="medium"
-                            source={getImageUrl(postOwner.image) ? { uri: getImageUrl(postOwner.image) } : require("../../assets/default-avatar.png")}
+                            source={getImageUrl(postOwner.image) ? { uri: getImageUrl(postOwner.image) } : null}
                             containerStyle={styles.avatar}
                         />
                     </TouchableOpacity>
@@ -439,7 +439,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                             <Avatar
                                 rounded
                                 size="small"
-                                source={comment.user?.image ? { uri: getImageUrl(comment.user.image) } : require("../../assets/default-avatar.png")}
+                                source={comment.user?.image ? { uri: getImageUrl(comment.user.image) } : null}
                             />
                         </TouchableOpacity>
                         <View style={styles.commentContent}>
@@ -451,7 +451,7 @@ const ChiTietBaiDang = ({ route, navigation }) => {
                                 }}
                             >
                                 <Text style={styles.commentUser}>
-                                    {comment.user?.first_name} {comment.user?.last_name || "Ẩn danh"}
+                                    {comment.user?.first_name} {comment.user?.last_name}
                                 </Text>
                                 {/* 🔹 Hiển thị thời gian bình luận */}
                                 <Text style={styles.commentTime}>

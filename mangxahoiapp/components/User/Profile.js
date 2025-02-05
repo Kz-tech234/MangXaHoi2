@@ -135,13 +135,13 @@ const Profile = ({ route, navigation }) => {
           <>
             <TouchableOpacity onPress={pickCoverImage} style={styles.coverContainer}>
               <Image
-                source={coverImage ? { uri: coverImage } : require("../../assets/anh3.jpg")}
+                source={user.coverImage ? { uri: `https://chickenphong.pythonanywhere.com${user.coverImage}` } : require("../../assets/anh3.jpg")}
                 style={styles.coverImage}
               />
             </TouchableOpacity>
             <View style={styles.profileHeader}>
               <Image
-                source={user.image ? { uri: `https://chickenphong.pythonanywhere.com${user.image}` } : require("../../assets/default-avatar.png")}
+                source={user.image ? { uri: `https://chickenphong.pythonanywhere.com${user.image}` } : null}
                 style={styles.profileImage}
               />
               <View style={styles.profileInfo}>
