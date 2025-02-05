@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Alert, RefreshControl } from "react-native";
 import { MyDispatchContext, MyUserContext } from "../../configs/MyUserContext";
 import MyStyles from "../../styles/MyStyles";
 import { Button, IconButton, Menu, Provider } from "react-native-paper";
@@ -14,6 +14,7 @@ const Profile = ({ route, navigation }) => {
   const [newPostContent, setNewPostContent] = useState("");
   const [coverImage, setCoverImage] = useState(user?.coverImage || null);
   const dispatch = useContext(MyDispatchContext);
+  const [refreshing, setRefreshing] = useState(false);
 
   const logout = async () => {
     await AsyncStorage.removeItem("token");
@@ -39,26 +40,32 @@ const Profile = ({ route, navigation }) => {
     return `${day}/${month}/${year}`;
   };
 
-  useEffect(() => {
-    if (user) {
-        // Lấy ảnh nền từ API
-      axios.get(`https://chickenphong.pythonanywhere.com/users/${user.id}/`)
-      .then((response) => {
-        setCoverImage(response.data.coverImage); // Cập nhật ảnh nền từ API
-      })
-      .catch((error) => console.error("Lỗi lấy ảnh nền:", error));
+  const loadUserData = async () => {
+    if (!user) return;
+    setRefreshing(true);
 
+    try {
+      const resUser = await axios.get(`https://chickenphong.pythonanywhere.com/users/${user.id}/`);
+      setCoverImage(resUser.data.coverImage);
 
-      fetch(`https://chickenphong.pythonanywhere.com/baidangs/`)
-        .then((response) => response.json())
-        .then((data) => {
-          const filteredPosts = data.filter(post => post.nguoiDangBai === user.id);
-          const sortedPosts = filteredPosts.sort((b, a) => new Date(b.created_date) - new Date(a.created_date));
-          setUserPosts(sortedPosts);
-        })
-        .catch((error) => console.error("Error fetching user posts:", error));
+      const resPosts = await axios.get(`https://chickenphong.pythonanywhere.com/baidangs/`);
+      const filteredPosts = resPosts.data.filter(post => post.nguoiDangBai === user.id);
+      const sortedPosts = filteredPosts.sort((b, a) => new Date(a.created_date) - new Date(b.created_date));
+      setUserPosts(sortedPosts);
+    } catch (error) {
+      console.error("Lỗi khi tải dữ liệu:", error);
+    } finally {
+      setRefreshing(false);
     }
-  }, [user]); 
+  };
+
+  useEffect(() => {
+    loadUserData();
+  }, [user]);
+
+  const handleRefresh = () => {
+    loadUserData();
+  };
 
   const [visible, setVisible] = useState(false); 
   const showMenu = () => setVisible(true);
@@ -87,8 +94,9 @@ const Profile = ({ route, navigation }) => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       Alert.alert("Cập nhật thành công", "Ảnh bìa đã được thay đổi");
-      setCoverImage(uri); // Cập nhật UI
-      user.coverImage = uri; // Cập nhật lại user
+      handleRefresh();
+      // setCoverImage(uri); // Cập nhật UI
+      // user.coverImage = uri; // Cập nhật lại user
     } catch (error) {
       console.error("Lỗi cập nhật ảnh bìa:", error);
       Alert.alert("Lỗi", "Không thể cập nhật ảnh bìa. Hãy thử lại sau.");
@@ -130,7 +138,10 @@ const Profile = ({ route, navigation }) => {
 
   return (
     <Provider>
-      <ScrollView style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+      >
         {user ? (
           <>
             <TouchableOpacity onPress={pickCoverImage} style={styles.coverContainer}>
